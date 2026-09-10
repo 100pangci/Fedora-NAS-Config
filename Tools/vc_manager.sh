@@ -64,9 +64,27 @@ release_smb_for_path() {
     sleep 1
 }
 
+# 因容器内 umount 失败而被临时停止的容器,待卷卸载完成后恢复
+STOPPED_CONTAINERS=()
+
+# 查询容器中 source 等于 target 的挂载,输出容器内的目标路径
+get_container_mount_dest() {
+    local container="$1" target="$2"
+    podman inspect --format '{{range .Mounts}}{{.Source}} {{.Destination}}{{"\n"}}{{end}}' "$container" 2>/dev/null \
+        | awk -v t="$target" '$1 == t { print $2; exit }'
+}
+
 # 卸载前释放 bind mount 了该路径的容器对该路径的占用
-# 容器 bind :rslave 挂载会在其 mount namespace 持有引用,宿主 umount 后 dm/loop 仍被占用无法释放
-# 策略: 先尝试容器内 umount(零停机),失败则重启容器兜底(重启后 bind 引用必然释放)
+# 机制(2026-09-10 查内核 fs/pnode.c 后定论):
+#   宿主 umount 的传播是沿"被卸载挂载的父挂载"的传播树去找对应子挂载,不看被卸载挂载自己的 slave。
+#   - bind 先于卷创建(容器先启动、卷后挂载): 卷的克隆是 bind 的子挂载(topper),传播能配对,自动摘掉
+#     → 这就是以前不碰容器也能正常卸载的原因。
+#   - 卷挂着时创建 bind(卷挂着时重启容器): bind 直接成为卷的 slave,不在父挂载的传播树里,
+#     宿主 umount 看不到它 → 卷在容器里原地不动, dm/loop 一直被引用 → 正常卸载失败、需再停一次容器。
+# 因此策略固定为: 停止容器(销毁命名空间,引用必然释放) → 卷卸载 → 卸载完成后重新启动
+#   - start 发生在卸载之后,容器重新 bind 空目录,恢复"bind 先于卷"的正确传播关系(下次挂卷容器立即可见)
+#   - 绝不能 restart / 不能先 start: 卷还挂着时启动会立刻重新 bind 卷,又把设备抱住
+#   - 也不做容器内 umount: 那会拆掉 rslave 的 bind,之后新挂的卷再也传播不进容器
 release_container_for_path() {
     local target="$1"
     command -v podman &> /dev/null || return 0
@@ -74,22 +92,32 @@ release_container_for_path() {
     local found=0
     while IFS= read -r container; do
         [ -z "$container" ] && continue
-        if podman inspect --format '{{range .Mounts}}{{.Source}} {{.Destination}}{{"\n"}}{{end}}' "$container" 2>/dev/null \
-            | awk '{print $1}' | grep -qxF "$target"; then
-            if [ "$found" -eq 0 ]; then
-                echo -e "${YELLOW}容器内仍挂着 $target 的 bind 引用,先卸载以免阻塞设备释放:${NC}"
-                found=1
-            fi
-            echo -e "  容器 ${YELLOW}$container${NC} 内尝试 umount ..."
-            if podman exec -u 0 "$container" umount "$target" 2>/dev/null; then
-                echo -e "    卸载成功"
-            else
-                echo -e "    ${YELLOW}容器内卸载失败,重启容器兜底 ...${NC}"
-                podman restart "$container"
-            fi
+        local dest
+        dest=$(get_container_mount_dest "$container" "$target")
+        [ -z "$dest" ] && continue
+        if [ "$found" -eq 0 ]; then
+            echo -e "${YELLOW}以下容器 bind 了 $target,先停止以免阻塞设备释放:${NC}"
+            found=1
+        fi
+        echo -e "  停止容器 ${YELLOW}$container${NC} (卷卸载完成后自动启动) ..."
+        if podman stop "$container" >/dev/null 2>&1; then
+            STOPPED_CONTAINERS+=("$container")
+        else
+            echo -e "    ${RED}容器停止失败,引用可能仍在${NC}"
         fi
     done < <(podman ps --format '{{.Names}}')
     sleep 1
+}
+
+# 卷卸载完成后,恢复被兜底停止的容器
+# (此时挂载点已还原为空目录,容器重新 bind 的是空目录,不会再持有 dm/loop 引用)
+resume_stopped_containers() {
+    [ ${#STOPPED_CONTAINERS[@]} -eq 0 ] && return 0
+    for container in "${STOPPED_CONTAINERS[@]}"; do
+        echo -e "  重新启动容器 ${YELLOW}$container${NC} ..."
+        podman start "$container" >/dev/null 2>&1
+    done
+    STOPPED_CONTAINERS=()
 }
 
 # 获取所有 .hc 文件列表
@@ -231,7 +259,7 @@ unmount_volume() {
 
     # 卸载前先释放 Samba 对该路径的占用
     release_smb_for_path "$target_unmount"
-    # 再释放容器 bind 引用(容器内先 umount,失败自动重启兜底)
+    # 再释放容器 bind 引用(停止容器,卷卸载完成后再启动)
     release_container_for_path "$target_unmount"
 
     echo "正在卸载 $target_unmount ..."
@@ -240,6 +268,9 @@ unmount_volume() {
     else
         echo -e "${RED}卸载失败，该目录可能正被其他程序（如 qBittorrent / 容器）读写！${NC}"
     fi
+
+    # 卷已卸载(或卸载失败),恢复被兜底停止的容器
+    resume_stopped_containers
 }
 
 # 一键卸载所有
@@ -262,6 +293,9 @@ unmount_all() {
     else
         echo -e "${RED}部分卷卸载失败，可能正被占用。${NC}"
     fi
+
+    # 卷已卸载(或卸载失败),恢复被兜底停止的容器
+    resume_stopped_containers
 }
 
 # 主菜单循环
