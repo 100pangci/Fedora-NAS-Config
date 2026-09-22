@@ -475,35 +475,56 @@ class StateStore:
             return None
 
     def write_pending_health(self, payload: dict) -> bool:
-        """写入重启后健康检查标记；必须落盘成功（含 read-back 校验）才返回 True。
+        """原子写入重启后健康检查标记（与 state.json 相同的持久化方式）。
 
+        流程：同目录临时文件 → flush/fsync → read-back 校验 → os.replace 到正式文件。
+        失败时绝不留下半截/损坏的 pending-health.json（正式文件要么保持原样，要么是完整新内容）。
         返回 False 时调用方必须禁止重启——否则重启后将无法执行健康检查。
         """
+        tmp = f"{self.paths.pending_health}.tmp.{os.getpid()}"
         try:
             os.makedirs(self.paths.state_dir, mode=0o700, exist_ok=True)
-            with open(self.paths.pending_health, "w", encoding="utf-8") as fh:
+            with open(tmp, "w", encoding="utf-8") as fh:
                 json.dump(payload, fh, ensure_ascii=False, indent=2)
                 fh.write("\n")
                 fh.flush()
                 os.fsync(fh.fileno())
-            os.chmod(self.paths.pending_health, 0o600)
-        except OSError as exc:
+            os.chmod(tmp, 0o600)
+            # read-back 校验临时文件
+            data = json.loads(Path(tmp).read_text(encoding="utf-8"))
+            if data.get("window_id") != payload.get("window_id"):
+                raise ValueError("临时文件 window_id 与写入内容不一致")
+            os.replace(tmp, self.paths.pending_health)
+            # 目录 fsync（best-effort，确保 rename 落盘）
+            try:
+                dir_fd = os.open(self.paths.state_dir, os.O_RDONLY | os.O_DIRECTORY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except OSError:
+                pass
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
             if self.logger:
-                self.logger.log(f"写入 pending-health 失败（将禁止重启）: {exc}", "ERROR")
+                self.logger.log(f"原子写入 pending-health 失败（将禁止重启）: {exc}", "ERROR")
+            try:
+                os.unlink(tmp)  # 清理半成品，不影响既有正式文件
+            except OSError:
+                pass
             return False
-        # read-back 校验：文件存在、可解析、window_id 一致
+        # 正式文件 read-back 校验：存在、可解析、window_id 一致
         try:
-            data = json.loads(Path(self.paths.pending_health).read_text(encoding="utf-8"))
+            final = json.loads(Path(self.paths.pending_health).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             if self.logger:
                 self.logger.log(f"pending-health 写后校验失败（将禁止重启）: {exc}", "ERROR")
             return False
-        if data.get("window_id") != payload.get("window_id"):
+        if final.get("window_id") != payload.get("window_id"):
             if self.logger:
                 self.logger.log("pending-health 写后校验失败（window_id 不一致，将禁止重启）", "ERROR")
             return False
         if self.logger:
-            self.logger.log(f"pending-health 已持久化并校验通过: {self.paths.pending_health}")
+            self.logger.log(f"pending-health 已原子持久化并校验通过: {self.paths.pending_health}")
         return True
 
     def clear_pending_health(self) -> None:
@@ -2242,33 +2263,89 @@ def wait_for_precheck_state(ctx: Ctx, window: Window, timeout: int) -> dict | No
     return None
 
 
-def _terminate_process_group(proc: subprocess.Popen, logger: Logger, grace: float = 10.0) -> None:
-    """终止 dnf 及其子进程（整组）：先 SIGTERM，宽限后 SIGKILL。"""
-    if proc.poll() is not None:
-        return
+def _process_group_alive(pgid: int) -> bool:
+    """进程组内是否仍有存活（非僵尸）成员。
+
+    注：不能用 os.killpg(pgid, 0) 单独判断——僵尸进程也会让该调用成功，
+    会让宽限期白等、并把已死亡的组误判为存活。这里扫描 /proc 判定 state != Z 的成员；
+    /proc 不可用时退化为 killpg 探测。
+    """
     try:
-        pgid = os.getpgid(proc.pid)
+        entries = [int(name) for name in os.listdir("/proc") if name.isdigit()]
     except OSError:
-        pgid = None
-
-    def _signal(sig: int) -> None:
         try:
-            if pgid is not None:
-                os.killpg(pgid, sig)
-            else:
-                proc.send_signal(sig)
-        except (ProcessLookupError, PermissionError, OSError):
-            pass
+            os.killpg(pgid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        except OSError:
+            return False
+    for pid in entries:
+        try:
+            data = Path(f"/proc/{pid}/stat").read_text(errors="replace")
+        except OSError:
+            continue
+        # 格式: pid (comm) state ppid pgrp ...（comm 可能含空格/括号，从最后一个 ')' 往后取）
+        rp = data.rfind(")")
+        if rp < 0:
+            continue
+        fields = data[rp + 2:].split()
+        if len(fields) < 3:
+            continue
+        state, _ppid, pgrp_txt = fields[0], fields[1], fields[2]
+        if state == "Z":
+            continue
+        try:
+            if int(pgrp_txt) == pgid:
+                return True
+        except ValueError:
+            continue
+    return False
 
-    logger.log(f"发送 SIGTERM 终止 dnf 进程组（pid {proc.pid}）", "WARN")
-    _signal(signal.SIGTERM)
-    deadline = time.monotonic() + grace
+
+def _terminate_process_group(proc: subprocess.Popen, logger: Logger, grace: float = 10.0) -> bool:
+    """终止 dnf 及其子进程（整组）：先 SIGTERM，宽限后确保 SIGKILL。
+
+    存活判定基于整个进程组（而非父进程 poll()）：父进程已退出但同组子进程仍存活时，
+    同样会走完宽限期并 SIGKILL。返回 True 表示组内已无存活成员。
+    注：dnf_stream 以 start_new_session=True 启动，子进程即组长，故 PGID == 子进程 PID。
+    """
+    pgid = proc.pid
+
+    def _signal(sig: int, label: str) -> None:
+        try:
+            os.killpg(pgid, sig)
+            logger.log(f"已向进程组 {pgid} 发送 {label}", "WARN" if sig == signal.SIGTERM else "ERROR")
+        except ProcessLookupError:
+            pass
+        except OSError as exc:
+            logger.log(f"向进程组 {pgid} 发送 {label} 失败: {exc}", "ERROR")
+
+    if not _process_group_alive(pgid):
+        return True
+
+    _signal(signal.SIGTERM, "SIGTERM")
+    deadline = time.monotonic() + max(0.0, grace)
     while time.monotonic() < deadline:
-        if proc.poll() is not None:
-            return
+        if not _process_group_alive(pgid):
+            return True
         time.sleep(0.5)
-    logger.log(f"SIGTERM 未生效，发送 SIGKILL（pid {proc.pid}）", "ERROR")
-    _signal(signal.SIGKILL)
+
+    if _process_group_alive(pgid):
+        logger.log(f"进程组 {pgid} 在 SIGTERM 宽限期后仍有存活成员，发送 SIGKILL", "ERROR")
+        _signal(signal.SIGKILL, "SIGKILL")
+        kill_deadline = time.monotonic() + 5.0
+        while time.monotonic() < kill_deadline:
+            if not _process_group_alive(pgid):
+                return True
+            time.sleep(0.5)
+
+    alive = _process_group_alive(pgid)
+    if alive:
+        logger.log(f"进程组 {pgid} 在 SIGKILL 后仍有存活成员，请人工检查", "ERROR")
+    return not alive
 
 
 def dnf_stream(cmd: str, logger: Logger, timeout: int) -> tuple[int, list[str]]:
