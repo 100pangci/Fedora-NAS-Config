@@ -1,0 +1,57 @@
+# ============================================================
+# Fedora-NAS 月度自动维护配置模板（.example）
+#   安装脚本会把它复制为 /etc/fedora-nas/update.conf（权限 600）
+#   真实文件包含 SMTP 授权码，绝对不要提交到仓库
+#
+#   修改时间/阈值后执行: sudo bash ~/Tools/install_monthly_maintenance.sh
+#   （安装脚本会用本文件重新渲染 systemd timer 的触发时间）
+# ============================================================
+
+# ---- 调度（本机时区，Asia/Shanghai；timer 使用本地时间）----
+# 每月最后一个周六的预检查时间
+PRECHECK_TIME=20:00
+# 紧随其后周日的正式升级时间（若周日跨月，仍视为同一维护窗口）
+UPGRADE_TIME=04:00
+# 升级补执行宽限期（小时）：从周日 UPGRADE_TIME 起算，超时则本月不再自动升级
+WINDOW_GRACE_HOURS=24
+# 预检查结果的有效期（小时）：超过则周日拒绝升级
+MAX_PRECHECK_AGE_HOURS=36
+
+# ---- 阈值 / 超时 ----
+MIN_FREE_ROOT_GB=10
+MIN_FREE_BOOT_MB=300
+MIN_FREE_EFI_MB=50
+# 重启后等待关键容器恢复的最长时间（秒）
+HEALTH_WAIT_SECONDS=300
+# 周日升级前等待周六预检查状态出现的最长时间（秒，用于开机补执行）
+PRECHECK_WAIT_SECONDS=1200
+# 维护互斥锁等待时间（秒）
+LOCK_WAIT_SECONDS=1800
+# dnf 升级超时（秒）
+DNF_TIMEOUT_SECONDS=14400
+# rpm 数据库校验：auto / always / never
+RPM_VERIFYDB=auto
+# 维护日志保留天数（只清理本目录自己的日志，不动 journal/内核/dnf 缓存）
+LOG_RETENTION_DAYS=400
+
+# ---- 行为 ----
+# 预检查邮件里重点标记的组件（逗号分隔）
+IMPORTANT_PACKAGES=kernel,kernel-core,systemd,glibc,podman,selinux-policy,NetworkManager,samba,openssl,dracut,systemd-udev,grub2-common
+# 升级完成后是否顺带更新 rootless 容器镜像（复用既有脚本，默认关闭）
+RUN_CONTAINER_UPDATE=no
+CONTAINER_UPDATE_SCRIPT=/home/ywpc/Tools/check_container_updates.sh
+# 正式升级命令（dnf5 语法；如需排除某仓库可在此追加参数）
+DNF_UPGRADE_CMD=dnf5 upgrade --refresh -y
+
+# ---- 邮件（163 邮箱 SMTP）----
+MAIL_ENABLED=yes
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+# ssl（465） / starttls（587） / none（仅测试）
+SMTP_SECURITY=ssl
+SMTP_USER=<your-account>@163.com
+SMTP_PASS=<your-smtp-auth-code>
+MAIL_FROM=<your-account>@163.com
+# 多个收件人用逗号分隔
+MAIL_TO=<your-inbox>@example.com
+MAIL_SUBJECT_PREFIX=[fedora-nas]

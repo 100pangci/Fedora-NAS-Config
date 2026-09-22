@@ -1,0 +1,77 @@
+# ============================================================
+# Fedora-NAS 月度维护 - 重启后健康检查名单（真实文件 /etc/fedora-nas/services.conf）
+#
+#   分级含义：
+#     critical          不可用即判定「重启后服务异常」（严重问题，需要人工介入）
+#     optional          不可用只记为「警告」，不影响邮件结论
+#     expected_stopped  按需服务，本来就可能没运行（记为信息，不算问题）
+#
+#   段落：[类别:级别]，类别 = systemd / containers / mounts / ports
+#   容器名称会同时在 rootless（rootless_user 的 podman）与 rootful（root 的 podman）
+#   两个视角里查找，以实际存在的为准。
+# ============================================================
+
+[settings]
+# rootless 容器所属用户（查询其 podman 时使用）
+rootless_user=ywpc
+
+# ---- systemd 单元 ----
+[systemd:critical]
+sshd.service
+NetworkManager.service
+firewalld.service
+smb.service
+nmb.service
+chronyd.service
+systemd-resolved.service
+podman.socket
+
+[systemd:optional]
+cockpit.socket
+
+# 按需启动的服务单元（没有 systemd 单元的服务请写容器名单）
+[systemd:expected_stopped]
+
+# ---- 容器 ----
+[containers:critical]
+syncthing
+qbittorrent-ee
+openlist
+openlist_mysql
+openlist_meilisearch
+open-webui-pure
+frpc
+localsend
+peerbanhelper
+bili-sync-rs
+ubuntu-xfce-webtop
+
+[containers:optional]
+vnstat-dashboard
+archivebox
+fluxdown-server
+antigravity-manager
+scrutiny
+
+[containers:expected_stopped]
+jellyfin
+minecraft
+terraria
+
+# ---- 关键挂载点（NAS 数据盘）----
+[mounts:critical]
+/mnt/Old-1
+/mnt/Old-2
+/mnt/New-1
+/mnt/New-2
+/mnt/SSD-Cache
+
+# ---- 监听端口 ----
+[ports:critical]
+445
+
+[ports:optional]
+1145
+8384
+7474
+8080

@@ -1,0 +1,12 @@
+[Unit]
+Description=Fedora-NAS monthly maintenance precheck (candidate last Saturdays)
+
+[Timer]
+# 候选：每月 22..31 日的周六；真正的「最后一个周六」由脚本严格判定
+OnCalendar=Sat *-*-22..31 20:00:00
+Persistent=true
+AccuracySec=1min
+Unit=fedora-nas-monthly-precheck.service
+
+[Install]
+WantedBy=timers.target

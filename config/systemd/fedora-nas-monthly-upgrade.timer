@@ -1,0 +1,12 @@
+[Unit]
+Description=Fedora-NAS monthly upgrade (Sunday after last Saturday; may cross month)
+
+[Timer]
+OnCalendar=Sun *-*-23..31 04:00:00
+OnCalendar=Sun *-*-01..03 04:00:00
+Persistent=true
+AccuracySec=1min
+Unit=fedora-nas-monthly-upgrade.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Fedora-NAS post-reboot health check
+Documentation=file:///home/ywpc/Tools/fedora_nas_maintenance.py
+After=network-online.target local-fs.target
+Wants=network-online.target
+ConditionPathExists=/var/lib/fedora-nas-update/pending-health.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/ywpc/Tools/fedora_nas_maintenance.py health
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+TimeoutStartSec=900
+UMask=0027

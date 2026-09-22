@@ -1,0 +1,10 @@
+[Unit]
+Description=Fedora-NAS post-reboot health check (3 min after boot)
+
+[Timer]
+OnBootSec=3min
+AccuracySec=30s
+Unit=fedora-nas-monthly-health.service
+
+[Install]
+WantedBy=timers.target
