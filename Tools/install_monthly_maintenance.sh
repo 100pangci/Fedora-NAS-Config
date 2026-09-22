@@ -115,7 +115,7 @@ if [[ $SMOKE_TEST -eq 1 ]]; then
     log "冒烟测试: 通过 systemd 运行一次 selftest（不升级、不发邮件、无副作用）"
     if out=$(systemd-run --wait --collect --pipe --property=Type=oneshot \
              /usr/bin/python3 "$MAINT_PY" selftest 2>&1); then
-        echo "$out" | tail -2 | sed 's/^/    /'
+        echo "$out" | grep -E 'selftest:' | sed 's/^/    /' || true
     else
         smoke_ok=0
         warn "冒烟测试失败；systemd 可能无法执行 /home 下的脚本（SELinux）。"

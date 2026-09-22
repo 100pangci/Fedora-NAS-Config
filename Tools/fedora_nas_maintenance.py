@@ -1694,9 +1694,13 @@ def cmd_init_config(args: argparse.Namespace) -> int:
         note = ""
     if note:
         print(f"[warn] {note}")
-    if args.force or not dest_exists:
-        print("[next] 请检查/补全 SMTP 配置: sudoedit /etc/fedora-nas/update.conf")
-        print("       然后运行安装脚本重新渲染并启用 timer。")
+    remaining = dest.read_text(encoding="utf-8")
+    if "<your-" in remaining:
+        print("[next] SMTP 仍是占位符，请补全后再启用维护:")
+        print(f"       sudoedit {dest}")
+        print("       然后重跑: sudo bash ~/Tools/install_monthly_maintenance.sh")
+    else:
+        print("[ok] SMTP 配置看起来已完整（可用 mail-test 验证发信）")
     return 0
 
 
