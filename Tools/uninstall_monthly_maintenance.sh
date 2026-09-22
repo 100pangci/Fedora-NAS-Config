@@ -43,7 +43,7 @@ log "已删除 /etc/systemd/system/fedora-nas-monthly-* 并 daemon-reload"
 if [[ $PURGE -eq 1 ]]; then
     rm -rf "$CONF_DIR" "$STATE_DIR" "$LOG_DIR"
     log "已删除配置 $CONF_DIR、状态 $STATE_DIR、日志 $LOG_DIR"
-    log "主脚本未删除（如需删除: rm -f /home/ywpc/Tools/fedora_nas_maintenance.py）"
+    log "主脚本未删除（如需删除: rm -f /home/ywpc/Scripts/fedora_nas_maintenance.py）"
 else
     log "保留配置 $CONF_DIR、状态 $STATE_DIR、日志 $LOG_DIR（彻底删除请加 --purge）"
 fi

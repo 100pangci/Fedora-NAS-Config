@@ -7,3 +7,7 @@ config/fedora-nas/services.conf
 *.bak
 *.swp
 *~
+
+# Python 字节码缓存（勿入库）
+__pycache__/
+*.pyc

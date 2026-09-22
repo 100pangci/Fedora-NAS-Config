@@ -4,7 +4,7 @@
 #   sudo bash ~/Tools/install_monthly_maintenance.sh [--no-smoke-test]
 #
 # 行为：
-#   1. 检查/安装主脚本（~/Tools/fedora_nas_maintenance.py）
+#   1. 检查/安装主脚本（~/Scripts/fedora_nas_maintenance.py）
 #   2. 生成独立配置（/etc/fedora-nas/update.conf，权限 600；仅首次，之后不覆盖）
 #      首次可选的从 Scrutiny YAML 一次性导入 SMTP —— 解析失败只提示、绝不猜测、绝不改原文件
 #   3. 生成健康检查名单（/etc/fedora-nas/services.conf，仅首次）
@@ -17,7 +17,7 @@
 
 set -uo pipefail
 
-MAINT_PY="${MAINT_PY:-/home/ywpc/Tools/fedora_nas_maintenance.py}"
+MAINT_PY="${MAINT_PY:-/home/ywpc/Scripts/fedora_nas_maintenance.py}"
 REPO_DIR="${REPO_DIR:-/home/ywpc/Configs/Fedora}"
 CONF_DIR="/etc/fedora-nas"
 CONF="$CONF_DIR/update.conf"
@@ -47,11 +47,11 @@ die()  { echo "[错误] $*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || die "请用 root 运行: sudo bash $0"
 
 # ---------- 1. 主脚本 ----------
-if [[ ! -f "$MAINT_PY" && -f "$REPO_DIR/Tools/fedora_nas_maintenance.py" ]]; then
-    log "主脚本不存在，从仓库复制: $REPO_DIR/Tools/fedora_nas_maintenance.py"
-    install -m 755 "$REPO_DIR/Tools/fedora_nas_maintenance.py" "$MAINT_PY"
+if [[ ! -f "$MAINT_PY" && -f "$REPO_DIR/Scripts/fedora_nas_maintenance.py" ]]; then
+    log "主脚本不存在，从仓库复制: $REPO_DIR/Scripts/fedora_nas_maintenance.py"
+    install -m 755 "$REPO_DIR/Scripts/fedora_nas_maintenance.py" "$MAINT_PY"
 fi
-[[ -f "$MAINT_PY" ]] || die "主脚本缺失: $MAINT_PY（请从仓库恢复 Tools/fedora_nas_maintenance.py）"
+[[ -f "$MAINT_PY" ]] || die "主脚本缺失: $MAINT_PY（请从仓库恢复 Scripts/fedora_nas_maintenance.py）"
 python3 -m py_compile "$MAINT_PY" || die "主脚本语法检查失败: $MAINT_PY"
 log "主脚本语法检查通过: $MAINT_PY"
 

@@ -1706,13 +1706,13 @@ def cmd_init_config(args: argparse.Namespace) -> int:
 
 SERVICE_TEMPLATE = """[Unit]
 Description={desc}
-Documentation=file:///home/ywpc/Tools/fedora_nas_maintenance.py
+Documentation=file:///home/ywpc/Scripts/fedora_nas_maintenance.py
 After={after}
 Wants=network-online.target
 {extra_unit}
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /home/ywpc/Tools/fedora_nas_maintenance.py {mode}
+ExecStart=/usr/bin/python3 /home/ywpc/Scripts/fedora_nas_maintenance.py {mode}
 Nice={nice}
 IOSchedulingClass=best-effort
 IOSchedulingPriority=6
@@ -2353,7 +2353,7 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
         body = render_report("本次自动升级被取消", checks,
                              [f"窗口: {window.id if window else win.get('id', '未知')}",
                               f"预检查状态: {pre_status}",
-                              "如确认系统健康，可人工运行: sudo python3 ~/Tools/fedora_nas_maintenance.py run --yes"],
+                              "如确认系统健康，可人工运行: sudo python3 ~/Scripts/fedora_nas_maintenance.py run --yes"],
                              log_path=logger.path)
         if not args.no_mail:
             ctx.mailer.send("维护已取消：预检查未通过或状态无效，未执行自动更新", body)

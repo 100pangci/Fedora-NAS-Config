@@ -1,12 +1,12 @@
 [Unit]
 Description=Fedora-NAS monthly maintenance precheck (last Saturday)
-Documentation=file:///home/ywpc/Tools/fedora_nas_maintenance.py
+Documentation=file:///home/ywpc/Scripts/fedora_nas_maintenance.py
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /home/ywpc/Tools/fedora_nas_maintenance.py precheck
+ExecStart=/usr/bin/python3 /home/ywpc/Scripts/fedora_nas_maintenance.py precheck
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=6
