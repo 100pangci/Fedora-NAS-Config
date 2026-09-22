@@ -55,8 +55,10 @@ scrutiny
 
 [containers:expected_stopped]
 jellyfin
-minecraft
-terraria
+mc-fabric-server
+mefrp-mc_mcfrpc_1
+mefrp-tr_trfrpc_1
+terraria-server
 
 # ---- 关键挂载点（NAS 数据盘）----
 [mounts:critical]
