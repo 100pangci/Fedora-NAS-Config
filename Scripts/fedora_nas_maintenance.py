@@ -36,7 +36,9 @@ import fcntl
 import glob
 import json
 import os
+import queue
 import re
+import signal
 import shlex
 import shutil
 import smtplib
@@ -44,6 +46,7 @@ import socket
 import ssl
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, time as dtime, timedelta
@@ -471,15 +474,37 @@ class StateStore:
         except (OSError, json.JSONDecodeError):
             return None
 
-    def write_pending_health(self, payload: dict) -> None:
+    def write_pending_health(self, payload: dict) -> bool:
+        """写入重启后健康检查标记；必须落盘成功（含 read-back 校验）才返回 True。
+
+        返回 False 时调用方必须禁止重启——否则重启后将无法执行健康检查。
+        """
         try:
             os.makedirs(self.paths.state_dir, mode=0o700, exist_ok=True)
             with open(self.paths.pending_health, "w", encoding="utf-8") as fh:
                 json.dump(payload, fh, ensure_ascii=False, indent=2)
                 fh.write("\n")
+                fh.flush()
+                os.fsync(fh.fileno())
             os.chmod(self.paths.pending_health, 0o600)
-        except OSError:
-            pass
+        except OSError as exc:
+            if self.logger:
+                self.logger.log(f"写入 pending-health 失败（将禁止重启）: {exc}", "ERROR")
+            return False
+        # read-back 校验：文件存在、可解析、window_id 一致
+        try:
+            data = json.loads(Path(self.paths.pending_health).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            if self.logger:
+                self.logger.log(f"pending-health 写后校验失败（将禁止重启）: {exc}", "ERROR")
+            return False
+        if data.get("window_id") != payload.get("window_id"):
+            if self.logger:
+                self.logger.log("pending-health 写后校验失败（window_id 不一致，将禁止重启）", "ERROR")
+            return False
+        if self.logger:
+            self.logger.log(f"pending-health 已持久化并校验通过: {self.paths.pending_health}")
+        return True
 
     def clear_pending_health(self) -> None:
         try:
@@ -497,7 +522,8 @@ class StateStore:
         except (OSError, json.JSONDecodeError):
             return {"pid": None}
 
-    def write_in_progress(self, extra: dict | None = None) -> None:
+    def write_in_progress(self, extra: dict | None = None) -> bool:
+        """写入「升级进行中」标记；失败必须明确记录（不能静默吞掉），但不阻断升级。"""
         payload = {"pid": os.getpid(), "started_at": fmt_dt(now_local())}
         if extra:
             payload.update(extra)
@@ -506,8 +532,12 @@ class StateStore:
                 json.dump(payload, fh, ensure_ascii=False, indent=2)
                 fh.write("\n")
             os.chmod(self.paths.in_progress, 0o600)
-        except OSError:
-            pass
+            return True
+        except OSError as exc:
+            if self.logger:
+                self.logger.log(f"写入 upgrade-in-progress 标记失败"
+                                f"（升级继续，但中断检测会失效）: {exc}", "ERROR")
+            return False
 
     def clear_in_progress(self) -> None:
         try:
@@ -1499,10 +1529,18 @@ def check_services_health(svc: Services, cfg: Config, logger: Logger,
     for note in notes:
         checks.append(Check("容器查询提示", "info", note))
 
-    # --- 运行内核 vs 最新已装内核（按 warning，不因此判「服务异常」）---
+    # --- 运行内核 ---
+    # 若 pending-health 明确记录了预期新内核，而当前运行的仍不是它 → critical/abnormal；
+    # 没有预期记录时（如手动健康检查）保持原有的 warning 语义。
     run_kernel = running_kernel()
     newest = newest_installed_kernel()
-    if newest and run_kernel != newest:
+    expected_kernel = (pending or {}).get("kernel_after") or ""
+    if expected_kernel and run_kernel != expected_kernel:
+        checks.append(Check(
+            "重启成功但新内核未生效", "critical",
+            f"运行内核 {run_kernel} != 预期新内核 {expected_kernel}；"
+            f"请检查默认启动项 / BLS 条目 / grubby（可运行 bootinfo 诊断）"))
+    elif newest and run_kernel != newest:
         checks.append(Check("运行内核", "warning",
                             f"运行 {run_kernel}，最新已安装 {newest}（内核更新未生效，可能需要再次重启或检查启动项）"))
     else:
@@ -2204,8 +2242,42 @@ def wait_for_precheck_state(ctx: Ctx, window: Window, timeout: int) -> dict | No
     return None
 
 
+def _terminate_process_group(proc: subprocess.Popen, logger: Logger, grace: float = 10.0) -> None:
+    """终止 dnf 及其子进程（整组）：先 SIGTERM，宽限后 SIGKILL。"""
+    if proc.poll() is not None:
+        return
+    try:
+        pgid = os.getpgid(proc.pid)
+    except OSError:
+        pgid = None
+
+    def _signal(sig: int) -> None:
+        try:
+            if pgid is not None:
+                os.killpg(pgid, sig)
+            else:
+                proc.send_signal(sig)
+        except (ProcessLookupError, PermissionError, OSError):
+            pass
+
+    logger.log(f"发送 SIGTERM 终止 dnf 进程组（pid {proc.pid}）", "WARN")
+    _signal(signal.SIGTERM)
+    deadline = time.monotonic() + grace
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            return
+        time.sleep(0.5)
+    logger.log(f"SIGTERM 未生效，发送 SIGKILL（pid {proc.pid}）", "ERROR")
+    _signal(signal.SIGKILL)
+
+
 def dnf_stream(cmd: str, logger: Logger, timeout: int) -> tuple[int, list[str]]:
-    """流式执行 dnf，返回 (rc, 关键行缓存)。"""
+    """流式执行 dnf，返回 (rc, 关键行缓存)。
+
+    超时基于墙上时钟，不依赖 stdout 是否有输出（dnf 完全静默卡死也能超时）；
+    输出由独立读取线程送入队列，主循环只负责消费与超时判定；
+    超时后终止整个进程组（SIGTERM → 10s → SIGKILL），返回 124。
+    """
     args = shlex.split(cmd)
     env = os.environ.copy()
     env["LC_ALL"] = "C"
@@ -2213,24 +2285,69 @@ def dnf_stream(cmd: str, logger: Logger, timeout: int) -> tuple[int, list[str]]:
     logger.log(f"执行: {cmd}（超时 {timeout}s）")
     try:
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, env=env, errors="replace")
+                                text=True, env=env, errors="replace", start_new_session=True)
     except OSError as exc:
         logger.log(f"无法启动 dnf: {exc}", "ERROR")
         return 127, [str(exc)]
+
+    lines: "queue.Queue[str | None]" = queue.Queue()
+
+    def _reader() -> None:
+        try:
+            assert proc.stdout is not None
+            for raw in proc.stdout:
+                lines.put(raw.rstrip("\n"))
+        except Exception:  # noqa: BLE001 - 读取线程不允许影响主流程
+            pass
+        finally:
+            lines.put(None)
+
+    threading.Thread(target=_reader, daemon=True, name="dnf-output-reader").start()
+
     captured: list[str] = []
-    start = time.monotonic()
-    assert proc.stdout is not None
-    for line in proc.stdout:
-        line = line.rstrip("\n")
-        logger.log("  " + line)
-        captured.append(line)
+    deadline = time.monotonic() + max(1, timeout)
+    timed_out = False
+    pipe_stall_deadline: float | None = None
+
+    while True:
+        now = time.monotonic()
+        if now >= deadline:
+            timed_out = True
+            logger.log(f"dnf 超过 {timeout}s 未结束（无论是否有输出），判定超时", "ERROR")
+            _terminate_process_group(proc, logger)
+            break
+        if proc.poll() is not None:
+            # 进程已退出，但可能仍有子进程持有管道；最多再等 5s 收尾
+            if pipe_stall_deadline is None:
+                pipe_stall_deadline = now + 5.0
+            elif now >= pipe_stall_deadline:
+                logger.log("dnf 已退出但输出管道未关闭（子进程可能仍持有），停止读取", "WARN")
+                break
+        try:
+            item = lines.get(timeout=0.5)
+        except queue.Empty:
+            continue
+        if item is None:
+            break
+        logger.log("  " + item)
+        captured.append(item)
         if len(captured) > 4000:
             del captured[:1000]
-        if time.monotonic() - start > timeout:
-            proc.kill()
-            logger.log("dnf 执行超时，已终止", "ERROR")
-            return 124, captured
-    rc = proc.wait()
+
+    try:
+        rc = proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        logger.log("dnf 进程在收尾阶段仍未退出，强制终止", "ERROR")
+        _terminate_process_group(proc, logger)
+        try:
+            rc = proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            rc = -9
+
+    if timed_out:
+        logger.log("dnf 已被终止（超时）", "ERROR")
+        return 124, captured
     return rc, captured
 
 
@@ -2439,7 +2556,9 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
         if not is_root():
             logger.log("正式升级必须以 root 运行（systemd unit 已如此配置）；未执行升级。", "ERROR")
             return finish(ctx, 2)
-        store.write_in_progress({"window": win.get("id"), "upgrades": len(upgrades)})
+        if not store.write_in_progress({"window": win.get("id"), "upgrades": len(upgrades)}):
+            logger.log("中断标记写入失败：若本次升级中途异常，中断检测将失效（升级继续，"
+                       "请留意日志与状态目录权限）", "ERROR")
         win.setdefault("upgrade", {}).update({"status": "running", "at": fmt_dt(now),
                                               "updates": len(upgrades), "log": logger.path})
         state["window"] = win
@@ -2593,8 +2712,8 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
             mail_last_state(ctx, state, "系统更新失败", sent)
             return finish(ctx, 1)
 
-        # ---- 即将重启 ----
-        store.write_pending_health({
+        # ---- 即将重启：必须先确认 pending-health 已成功持久化，否则禁止重启 ----
+        pending_ok = store.write_pending_health({
             "window_id": win.get("id"),
             "reboot_requested_at": fmt_dt(now),
             "boot_id_before": boot_id(),
@@ -2604,6 +2723,33 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
             "containers_before": win.get("containers_before", {}),
             "packages": len(changed),
         })
+        if not pending_ok:
+            reason = ("pending-health.json 无法持久化，已取消自动重启"
+                      "（否则重启后无法自动执行健康检查）")
+            logger.log(reason, "ERROR")
+            win.setdefault("upgrade", {}).update({
+                "status": "failed", "at": fmt_dt(now), "reason": reason,
+                "no_reboot": True, "update_ok": True, "packages": len(changed),
+            })
+            state["window"] = win
+            store.save(state)
+            checks.append(Check("pending-health 持久化", "critical", reason))
+            body = render_report("月度维护：系统更新成功，但无法安全重启（需人工介入）",
+                                 checks,
+                                 intro=[f"窗口: {win.get('id')}",
+                                        f"更新软件包: {len(changed)} 个",
+                                        f"当前内核: {running_kernel()}",
+                                        f"新内核: {kernel_after or '未变化'}",
+                                        "系统更新本身已完成，但为避免重启后丢失健康检查，已取消自动重启。"],
+                                 extra=["", "本次未执行的重启原因:", *[f"  - {r}" for r in reboot_reasons],
+                                        "", "建议: 检查 /var/lib/fedora-nas-update/ 的权限与空间后，"
+                                            "人工执行 sudo systemctl reboot（重启后健康检查需人工触发或"
+                                            "再次写入标记），必要时先运行 bootinfo 复核启动项。"],
+                                 log_path=logger.path)
+            sent = not args.no_mail and ctx.mailer.send(
+                "系统更新成功，但无法安全重启（需人工介入）", body)
+            mail_last_state(ctx, state, "系统更新成功，但无法安全重启", sent)
+            return finish(ctx, 1)
         win.setdefault("upgrade", {}).update({"status": "reboot-requested",
                                               "reboot_at": fmt_dt(now)})
         state["window"] = win
