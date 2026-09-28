@@ -32,7 +32,7 @@ Podman/
 ├── Antigravity-Manager/         # AI 网关（8045，账号管理 + 协议代理）
 ├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/ OpenWebUI/
 ├── PeerBanHelper/ qBittorrent-Enhanced-Edition/ Scrutiny/ Syncthing/
-├── Ubuntu-Xfce/                 # webtop 桌面 + 百度网盘/115（rootless；启动自动装 App；不再承担代理）
+├── Ubuntu-Xfce/                 # webtop 桌面 + 百度网盘/115（rootless；按需启动；启动自动装 App；不再承担代理）
 ├── LocalSend/                   # 自建镜像 ywpc05/localsend-cli（构建见独立仓库）
 ├── Minecraft/                   # MC 服务端 + Mefrp-MC 三方 frp（按需启动）
 ├── Terraria/                    # Terraria 服务端 + Mefrp-TR 三方 frp（按需启动）

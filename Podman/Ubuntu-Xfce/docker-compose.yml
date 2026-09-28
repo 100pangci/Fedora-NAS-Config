@@ -2,7 +2,7 @@ services:
   webtop:
     image: lscr.io/linuxserver/webtop:ubuntu-xfce
     container_name: ubuntu-xfce-webtop
-    restart: unless-stopped
+    restart: "no"   # 按需启动,不随开机自启
     # rootless:keep-id 让 容器abc(1000)=宿主ywpc;keep-id 默认会把进程跑成 uid1000,
     # LSIO 需要容器内 root 来初始化(usermod/chown/nginx),故显式 -u 0:0
     userns_mode: "keep-id"

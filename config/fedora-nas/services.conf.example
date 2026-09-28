@@ -44,7 +44,6 @@ frpc
 localsend
 peerbanhelper
 bili-sync-rs
-ubuntu-xfce-webtop
 
 [containers:optional]
 vnstat-dashboard
@@ -54,6 +53,7 @@ antigravity-manager
 scrutiny
 
 [containers:expected_stopped]
+ubuntu-xfce-webtop
 jellyfin
 mc-fabric-server
 mefrp-mc_mcfrpc_1

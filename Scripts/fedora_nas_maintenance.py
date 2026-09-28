@@ -1260,10 +1260,11 @@ def default_services() -> Services:
     svc.systemd["expected_stopped"] = []
     svc.containers["critical"] = ["syncthing", "qbittorrent-ee", "openlist", "openlist_mysql",
                                   "openlist_meilisearch", "open-webui-pure", "frpc", "localsend",
-                                  "peerbanhelper", "bili-sync-rs", "ubuntu-xfce-webtop"]
+                                  "peerbanhelper", "bili-sync-rs"]
     svc.containers["optional"] = ["vnstat-dashboard", "archivebox", "fluxdown-server",
                                   "antigravity-manager", "scrutiny"]
-    svc.containers["expected_stopped"] = ["jellyfin", "minecraft", "terraria"]
+    svc.containers["expected_stopped"] = ["jellyfin", "minecraft", "terraria",
+                                          "ubuntu-xfce-webtop"]
     svc.mounts["critical"] = ["/mnt/Old-1", "/mnt/Old-2", "/mnt/New-1", "/mnt/New-2", "/mnt/SSD-Cache"]
     svc.ports["critical"] = ["445"]
     svc.ports["optional"] = ["1145", "8384", "7474", "8080"]
