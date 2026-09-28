@@ -21,8 +21,8 @@ services:
       TITLE: "Ubuntu XFCE Webtop"
       CUSTOM_USER: "admin"
       PASSWORD: "<REDACTED-填实际VNC密码>"
-      SELKIES_MANUAL_WIDTH: "1600"
-      SELKIES_MANUAL_HEIGHT: "900"
+      SELKIES_MANUAL_WIDTH: "1920"
+      SELKIES_MANUAL_HEIGHT: "1080"
 
     volumes:
       - ./config:/config:nosuid,nodev
