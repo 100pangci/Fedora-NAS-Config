@@ -32,7 +32,7 @@ Podman/
 ├── Antigravity-Manager/         # AI 网关（8045，账号管理 + 协议代理）
 ├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/ OpenWebUI/
 ├── PeerBanHelper/ qBittorrent-Enhanced-Edition/ Scrutiny/ Syncthing/
-├── Ubuntu-Xfce/                 # 代理核心容器（V2rayN，1145 出口，rootful）
+├── Ubuntu-Xfce/                 # webtop 桌面 + 百度网盘/115（rootless；启动自动装 App；不再承担代理）
 ├── LocalSend/                   # 自建镜像 ywpc05/localsend-cli（构建见独立仓库）
 ├── Minecraft/                   # MC 服务端 + Mefrp-MC 三方 frp（按需启动）
 ├── Terraria/                    # Terraria 服务端 + Mefrp-TR 三方 frp（按需启动）
@@ -77,7 +77,8 @@ Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 
 - `/etc/fedora-nas/update.conf`（月度维护真实配置，含 163 SMTP 授权码；仓库只提供 `.example`）
 - `~/.ssh/authorized_keys`（SSH 公钥）
-- `~/Podman/Ubuntu-Xfce/config/Software/v2rayN/`（订阅与代理配置）
+- `~/Podman/Ubuntu-Xfce/config/Software/v2rayN/`（订阅与代理配置；2026-09-28 起 webtop 不再跑代理，目录原样保留）
+- `~/Podman/Ubuntu-Xfce/config/debs/`（百度网盘/115 及依赖的离线安装包，rootless webtop 启动时自动安装）
 - `~/Podman/Terraria/Trlatest/config/` 中的世界文件 `*.wld` 与 `banlist.txt`（游戏数据）
 - VeraCrypt 加密卷（挂载点不公开，仓库中以 `Vault-1`/`Vault-2` 指代）的密码
 - `/etc/ssh/sshd_config`、`/etc/selinux/`（均为发行版默认，未做改动）
