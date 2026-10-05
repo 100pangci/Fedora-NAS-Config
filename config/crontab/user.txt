@@ -1,2 +1,2 @@
-0 6 * * * find /home/ywpc/Podman/OpenWebUI/config/uploads -type f -mtime +60 -delete
-0 0 * * * podman exec --user archivebox archivebox archivebox add "https://opencode.ai/docs/zh-cn/go/"
+0 6 * * * find /home/ywpc/Podman/OpenWebUI-Pure/config/uploads -type f -mtime +60 -delete
+0 0 * * * podman exec --user archivebox archivebox archivebox add "https://opencode.ai/docs/zh-cn/go/#$(date -I)"

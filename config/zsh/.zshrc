@@ -119,8 +119,8 @@ source $ZSH/oh-my-zsh.sh
 
 # 别名
 
-alias proxy="export http_proxy=http://127.0.0.1:1145; export https_proxy=http://127.0.0.1:1145; export all_proxy=socks5://127.0.0.1:1145; echo -e '\e[32m[+] 终端代理已开启\e[0m'"
-alias unproxy="unset http_proxy; unset https_proxy; unset all_proxy; echo -e '\e[31m[-] 终端代理已关闭\e[0m'"
+alias proxy-on="export http_proxy=http://127.0.0.1:1145; export https_proxy=http://127.0.0.1:1145; export all_proxy=socks5://127.0.0.1:1145; export no_proxy=localhost,127.0.0.1,::1; export NO_PROXY=localhost,127.0.0.1,::1; echo -e '\e[32m[+] 终端代理已开启\e[0m'"
+alias proxy-off="unset http_proxy; unset https_proxy; unset all_proxy; unset no_proxy; unset NO_PROXY; echo -e '\e[31m[-] 终端代理已关闭\e[0m'"
 
 alias update="sudo dnf update"
 
@@ -137,6 +137,12 @@ alias vcm="/home/ywpc/Tools/vc_manager.sh"
 alias wkupywpc="/home/ywpc/Tools/wakeup_pc.sh"
 
 alias bdpcs="/home/ywpc/Software/BaiduPCS-Go/BaiduPCS-Go"
+
+alias ccupdate="/home/ywpc/Tools/check_container_updates.sh"
+
+alias opencode="proxy-on && opencode"
+
+alias cz="/home/ywpc/Software/czkawka_cli"
 
 # 补全修复
 
