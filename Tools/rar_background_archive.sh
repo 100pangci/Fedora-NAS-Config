@@ -1,7 +1,7 @@
 #!/bin/zsh
 # ================= 配置区 =================
 # 1. 永远的最终输出目录（机械硬盘存储区）
-DEST_DIR="/mnt/New-2/Temp"
+DEST_DIR="/mnt/New-2/Temp/待上传"
 # 2. 缓存目录：在高速 SSD 上进行压缩，压缩完成后再移动到目标目录
 CACHE_BASE_DIR="/mnt/SSD-Cache/U-A-Temp"
 # 3. 固定密码

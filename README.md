@@ -10,7 +10,7 @@ Fedora Server 44 NAS（`fedora-nas`，内网 IP 已模糊为 192.168.x.x）的**
 config/
 ├── dnf/
 │   ├── dnf.conf                  # DNF 加速（max_parallel_downloads/fastestmirror）
-│   └── yum.repos.d/              # TUNA 清华换源后的 fedora.repo / fedora-updates.repo
+│   └── yum.repos.d/              # 阿里云换源后的 fedora.repo / fedora-updates.repo
 ├── fstab/                        # 磁盘挂载表（XFS 全盘，UUID 直挂）
 ├── samba/smb.conf                # Samba 共享（仅 ywpc 可读写；VeraCrypt 卷以 Vault-1/Vault-2 指代）
 ├── containers/containers.conf    # Podman 引擎用户配置
@@ -26,6 +26,7 @@ config/
 └── systemd/
     ├── podman-restart.service   # 系统级：rootful 容器开机自启
     ├── upload-cleanup.{service,timer}    # 每日 06:00 清理 OpenWebUI 旧上传
+    ├── v2rayn-web.service       # 宿主 v2rayN-Web 代理（用户级）
     └── fedora-nas-monthly-{precheck,upgrade,health}.{service,timer}  # 月度维护（最后一个周六/周日）
 Podman/
 ├── ArchiveBox/                  # 网页存档（8000，归档实体在机械盘）
@@ -66,7 +67,7 @@ Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 | `Podman/Ubuntu-Xfce/docker-compose.yml` | webtop VNC 密码 |
 | `Podman/Openlist/docker-compose.yml` | MySQL root 密码 |
 | `Podman/OpenWebUI/docker-compose.yml` | WEBUI_SECRET_KEY |
-| `Podman/Antigravity-Manager/docker-compose.yml` | API_KEY / WEB_PASSWORD |
+| `Podman/Antigravity-Manager/docker-compose.yml` | WEB_PASSWORD |
 | `Podman/Minecraft/Mefrp-MC/docker-compose.yml` | 三方 frp 令牌 |
 | `Podman/Terraria/Mefrp-TR/docker-compose.yml` | 三方 frp 令牌 |
 | `Podman/Terraria/Trlatest/config/serverconfig.txt` | 服务器密码 |

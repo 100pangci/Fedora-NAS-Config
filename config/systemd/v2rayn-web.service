@@ -1,0 +1,16 @@
+[Unit]
+Description=v2rayN Web
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ywpc/Software/v2rayN-Web
+ExecStart=/home/ywpc/Software/v2rayN-Web/v2rayN.Web --foreground
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5080
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+UMask=0077
+
+[Install]
+WantedBy=default.target

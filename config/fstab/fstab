@@ -14,7 +14,6 @@ UUID=6e41d090-c62f-40f5-a21b-4fd58872b6e3 /boot xfs defaults 0 0
 UUID=61EA-9AA6 /boot/efi vfat umask=0077,shortname=winnt 0 2
 
 # HDD
-
 UUID=0c8b13a0-49b8-4fb8-bf1f-10ae4bc9b854  /mnt/New-1  xfs  defaults,noatime,nofail  0  0
 UUID=53e0dcbf-d313-45e7-80ac-3f12175c61ae  /mnt/New-2  xfs  defaults,noatime,nofail  0  0
 UUID=1ce4603f-c94e-45ef-93ea-874cdd37c5ac  /mnt/Old-1  xfs  defaults,noatime,nofail  0  0
