@@ -1,13 +1,13 @@
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: open-webui/open-webui:main
     container_name: open-webui
     network_mode: host
     environment:
       - TZ=Asia/Shanghai
       # 👈 核心：让容器内的所有 HTTP/HTTPS 请求全部走宿主机的 1145 端口（也就是 v2rayN 的 HTTP 代理）
-      - HTTP_PROXY=http://host.containers.internal:1145
-      - HTTPS_PROXY=http://host.containers.internal:1145
+      - HTTP_PROXY=http://127.0.0.1:1145
+      - HTTPS_PROXY=http://127.0.0.1:1145
       # 👈 避坑：本地连接（比如连接同台 NAS 上的 local Ollama）不要走代理
       - NO_PROXY=localhost,127.0.0.1,host.containers.internal
       - PORT=8080

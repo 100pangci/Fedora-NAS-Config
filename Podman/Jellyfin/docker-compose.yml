@@ -1,3 +1,4 @@
+# 路径：/home/ywpc/Podman/Jellyfin
 services:
   jellyfin:
     image: docker.io/jellyfin/jellyfin:latest

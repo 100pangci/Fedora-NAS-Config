@@ -1,3 +1,4 @@
+# 路径：/home/ywpc/Podman/Frpc
 services:
   frpc:
     image: snowdreamtech/frpc:latest

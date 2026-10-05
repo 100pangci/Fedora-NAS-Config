@@ -1,12 +1,19 @@
+# 路径：/home/ywpc/Podman/FluxDown
 services:
   fluxdown-server:
     image: ghcr.io/zerx-lab/fluxdown-server:latest
     container_name: fluxdown-server
     restart: unless-stopped
+    # 代理走 pasta 拼接：宿主 127.0.0.1:1145 → 容器 127.0.0.1:1145
+    network_mode: "pasta:-T,1145"
     environment:
-      - HTTP_PROXY=http://host.containers.internal:1145
-      - HTTPS_PROXY=http://host.containers.internal:1145
+      - HTTP_PROXY=http://127.0.0.1:1145
+      - HTTPS_PROXY=http://127.0.0.1:1145
       - NO_PROXY=localhost,127.0.0.1
+      # 补齐小写变量（部分工具只认小写）
+      - http_proxy=http://127.0.0.1:1145
+      - https_proxy=http://127.0.0.1:1145
+      - no_proxy=localhost,127.0.0.1
     ports:
       - "17800:17800"
     volumes:

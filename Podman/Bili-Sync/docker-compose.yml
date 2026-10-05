@@ -1,3 +1,4 @@
+# 路径：/home/ywpc/Podman/Bili-Sync
 services:
   bili-sync-rs:
     image: amtoaer/bili-sync-rs:latest

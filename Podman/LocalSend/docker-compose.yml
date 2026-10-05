@@ -1,3 +1,4 @@
+# 路径：/home/ywpc/Podman/LocalSend
 services:
   localsend:
     # Image is built and published by GitHub Actions

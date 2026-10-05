@@ -3,17 +3,19 @@ services:
   openlist:  
     image: openlistteam/openlist:latest  
     container_name: openlist
+    # 代理与 meilisearch 都走 pasta 拼接：宿主 127.0.0.1:1145/7700 → 容器同端口
+    network_mode: "pasta:-T,1145,-T,7700"
     user: '0:0'
     environment:  
       - UMASK=022  
       - TZ=Asia/Shanghai  
-      # 👈 核心：强制覆盖 Podman 自动注入的 127.0.0.1 代理，指向宿主机代理
-      - HTTP_PROXY=http://host.containers.internal:1145
-      - HTTPS_PROXY=http://host.containers.internal:1145
-      - http_proxy=http://host.containers.internal:1145
-      - https_proxy=http://host.containers.internal:1145
-      # 👈 避坑（极其重要）：必须让 Openlist 连接 mysql 和 meilisearch 的流量绕过代理！
-      - NO_PROXY=localhost,127.0.0.1,mysql,meilisearch,host.containers.internal
+      # 👈 走 pasta 拼接的宿主代理（宿主 127.0.0.1:1145 → 容器 127.0.0.1:1145）
+      - HTTP_PROXY=http://127.0.0.1:1145
+      - HTTPS_PROXY=http://127.0.0.1:1145
+      - http_proxy=http://127.0.0.1:1145
+      - https_proxy=http://127.0.0.1:1145
+      # 👈 meilisearch 已拼接进容器回环（127.0.0.1:7700），无需再列名字；DB 为 sqlite 不涉网络
+      - NO_PROXY=localhost,127.0.0.1,host.containers.internal
     volumes:  
       - ./config:/opt/openlist/data:z      # 配置、日志、缓存放本地  
       - /mnt/Old-1:/mnt/Old-1:rslave             # 把整个 NTFS 映射进去供其读取和挂载

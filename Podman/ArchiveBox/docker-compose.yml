@@ -1,8 +1,11 @@
+# 路径：/home/ywpc/Podman/ArchiveBox
 services:
   archivebox:
     image: archivebox/archivebox:latest
     container_name: archivebox
     restart: unless-stopped
+    # 代理走 pasta 拼接：宿主 127.0.0.1:1145 → 容器 127.0.0.1:1145（-T=把宿主回环端口放进容器）
+    network_mode: "pasta:-T,1145"
     ports:
       - "8000:8000"
     environment:
@@ -14,9 +17,13 @@ services:
       - SAVE_PDF=True
       - SAVE_SINGLEFILE=True
       - SAVE_WARC=True
-      - HTTP_PROXY=http://host.containers.internal:1145
-      - HTTPS_PROXY=http://host.containers.internal:1145
+      - HTTP_PROXY=http://127.0.0.1:1145
+      - HTTPS_PROXY=http://127.0.0.1:1145
       - NO_PROXY=localhost,127.0.0.1,host.containers.internal
+      # GNU wget 等工具只认小写变量，补齐
+      - http_proxy=http://127.0.0.1:1145
+      - https_proxy=http://127.0.0.1:1145
+      - no_proxy=localhost,127.0.0.1,host.containers.internal
     volumes:
       # 数据库、配置、日志等元数据留在当前 SSD/系统盘目录下
       - ./data:/data:z
