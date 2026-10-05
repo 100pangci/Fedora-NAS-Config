@@ -204,14 +204,14 @@ mount_volume() {
     #  --pim=0 -k ""  跳过 PIM 和 keyfile 追问
     #  保留隐藏卷追问（不加 --protect-hidden）
     #  context=...    SELinux 标签，让 Podman 容器能读取挂载点
-    #  --filesystem=ntfs3  内核只剩 ntfs3 驱动（老 ntfs 类型已移除），
-    #  不指定时 VeraCrypt 默认用 "ntfs" 类型挂载导致 unknown filesystem type
+    #  --filesystem=ntfs  使用当前内核的 ntfs.ko 读写驱动，不使用 ntfs3
+    #  内核升级后需确认 ntfs 模块可用（modinfo ntfs）
     #  注意：本脚本所有 .hc 卷均为 NTFS 格式，若将来有 FAT/ext4 卷需改此值
     echo -e "\n${GREEN}[VeraCrypt 提示] 接下来请按提示输入密码；${NC}"
     echo -e "${GREEN}如需保护隐藏卷，在 'Protect hidden volume?' 时输入 y 并提供隐藏卷密码。${NC}"
     if sudo veracrypt -t \
         --pim=0 -k "" \
-        --filesystem=ntfs3 \
+        --filesystem=ntfs \
         --fs-options="uid=$MY_UID,gid=$MY_GID,umask=000,context=$SE_CONTEXT" \
         "$selected_file" "$mount_point"; then
         echo -e "${GREEN}挂载成功！已挂载到 $mount_point${NC}"
