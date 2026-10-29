@@ -45,6 +45,8 @@ Tools/uninstall_monthly_maintenance.sh  # 卸载（--purge 连配置状态日志
 Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 ```
 
+> **firewalld 说明**：`config/firewalld/services/` 与 `FedoraServer.xml` 里保留了不少“当前没在跑”的服务定义（DSH、qq-bridge、ArchiveBox、Antigravity-Manager、opencode、OpenAI_auth、NetFrp、Frpc、Jellyfin、minecraft、terraria 等）。这是**刻意保留**——相关服务经常临时/按需启动，端口放行要随时可用，并非漏删的残留。
+>
 > 2026-10-12 起 ArchiveBox 与 Antigravity-Manager 已彻底删除（容器/镜像/目录），本仓库同步移除其 compose；2026-10-29 复核时同步收录现役 `OpenWebUI-Pure/` 与 `Netfrp/`，并移除同日删除的原版 `OpenWebUI/` 目录。
 
 ## 月度自动维护（fedora-nas-monthly-*）
