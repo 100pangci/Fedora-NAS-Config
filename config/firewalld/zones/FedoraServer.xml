@@ -16,20 +16,27 @@
   <service name="OpenList"/>
   <service name="scrutiny"/>
   <service name="VNStat"/>
-  <service name="OpenClaw"/>
   <service name="qBE_Server"/>
   <service name="Syncthing_Server"/>
   <service name="Syncthing_Server_LAN"/>
   <service name="Jellyfin_Server_LAN"/>
   <service name="Jellyfin"/>
   <service name="Localsend"/>
-  <service name="LinuxServer"/>
   <service name="Frpc"/>
   <service name="mdns"/>
-  <service name="dufs"/>
   <service name="minecraft"/>
   <service name="FluxDown"/>
   <service name="LocalSend"/>
+  <service name="ArchiveBox"/>
+  <service name="Antigravity-Manager"/>
+  <service name="terraria"/>
+  <service name="opencode"/>
+  <service name="OpenAI_auth"/>
+  <service name="v2rayN-Web"/>
+  <service name="Ubuntu-Xfce"/>
+  <service name="NetFrp"/>
+  <service name="DSH"/>
+  <service name="qq-bridge"/>
   <masquerade/>
   <forward/>
 </zone>

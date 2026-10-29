@@ -1,0 +1,16 @@
+# 路径：/home/ywpc/Podman/Netfrp
+# 镜像：ghcr.io/natfrp/launcher（SakuraFrp / natfrp 官方 launcher）
+# 说明：三方 frp 备选（现有 frpc + VPS Xray 隧道为主）。host 网络，restart: always，
+#       但实际长期处于未启动状态（容器名 natfrp-service，按需 `podman start natfrp-service`）。
+services:
+  natfrp-service:
+    image: ghcr.io/natfrp/launcher
+    container_name: natfrp-service
+    network_mode: host
+    restart: always
+    pull_policy: always
+
+    environment:
+      NATFRP_TOKEN: "<REDACTED-填SakuraFrp访问令牌>"
+      NATFRP_REMOTE: "<REDACTED-填隧道远程地址>"
+      TZ: "Asia/Shanghai"

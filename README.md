@@ -19,7 +19,7 @@ config/
 │   └── services/                 # qBE/scrutiny/Syncthing/V2ray_proxy 等
 ├── crontab/
 │   ├── root.txt                  # root crontab（每日 04:30 EFU 目录树扫描）
-│   └── user.txt                  # 用户 crontab（06:00 上传清理 + 00:00 archivebox 存档）
+│   └── user.txt                  # 用户 crontab（每日 06:00 清理 OpenWebUI-Pure 60 天前的上传）
 ├── fedora-nas/                   # 月度自动维护配置
 │   ├── update.conf.example       # 模板（真实文件 /etc/fedora-nas/update.conf 权限 600，含授权码不入库）
 │   └── services.conf.example     # 健康检查名单（critical / optional / expected_stopped 分级）
@@ -29,9 +29,9 @@ config/
     ├── v2rayn-web.service       # 宿主 v2rayN-Web 代理（用户级）
     └── fedora-nas-monthly-{precheck,upgrade,health}.{service,timer}  # 月度维护（最后一个周六/周日）
 Podman/
-├── ArchiveBox/                  # 网页存档（8000，归档实体在机械盘）
-├── Antigravity-Manager/         # AI 网关（8045，账号管理 + 协议代理）
 ├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/ OpenWebUI/
+├── OpenWebUI-Pure/              # 现役 Open WebUI（自建 fork，8080；原版 OpenWebUI 仅留 compose 作回退）
+├── Netfrp/                      # SakuraFrp launcher（三方 frp 备选，长期未启动）
 ├── PeerBanHelper/ qBittorrent-Enhanced-Edition/ Scrutiny/ Syncthing/
 ├── Ubuntu-Xfce/                 # webtop 桌面 + 百度网盘/115（rootless；按需启动；启动自动装 App；不再承担代理）
 ├── LocalSend/                   # 自建镜像 ywpc05/localsend-cli（构建见独立仓库）
@@ -44,6 +44,8 @@ Tools/install_monthly_maintenance.sh    # 幂等安装/重渲染 timer
 Tools/uninstall_monthly_maintenance.sh  # 卸载（--purge 连配置状态日志）
 Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 ```
+
+> 2026-10-12 起 ArchiveBox 与 Antigravity-Manager 已彻底删除（容器/镜像/目录），本仓库同步移除其 compose；2026-10-29 复核时同步收录现役 `OpenWebUI-Pure/` 与 `Netfrp/`。
 
 ## 月度自动维护（fedora-nas-monthly-*）
 
@@ -67,7 +69,8 @@ Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 | `Podman/Ubuntu-Xfce/docker-compose.yml` | webtop VNC 密码 |
 | `Podman/Openlist/docker-compose.yml` | MySQL root 密码 |
 | `Podman/OpenWebUI/docker-compose.yml` | WEBUI_SECRET_KEY |
-| `Podman/Antigravity-Manager/docker-compose.yml` | WEB_PASSWORD |
+| `Podman/OpenWebUI-Pure/docker-compose.yml` | WEBUI_SECRET_KEY |
+| `Podman/Netfrp/docker-compose.yml` | SakuraFrp token / 隧道远程地址 |
 | `Podman/Minecraft/Mefrp-MC/docker-compose.yml` | 三方 frp 令牌 |
 | `Podman/Terraria/Mefrp-TR/docker-compose.yml` | 三方 frp 令牌 |
 | `Podman/Terraria/Trlatest/config/serverconfig.txt` | 服务器密码 |
@@ -89,7 +92,7 @@ Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 ## 恢复用法
 
 ```bash
-git clone https://github.com/100pangci/fedora-nas-config.git
+git clone https://github.com/100pangci/Fedora-NAS-Config.git
 # 对照《Fedora Server 系统安装与维护手册》Phase 2~7 逐步还原
 # 将各文件拷回目标路径后，填入所有 <REDACTED-...> 占位符
 #

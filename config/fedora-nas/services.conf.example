@@ -47,9 +47,7 @@ bili-sync-rs
 
 [containers:optional]
 vnstat-dashboard
-archivebox
 fluxdown-server
-antigravity-manager
 scrutiny
 
 [containers:expected_stopped]
@@ -59,6 +57,7 @@ mc-fabric-server
 mefrp-mc_mcfrpc_1
 mefrp-tr_trfrpc_1
 terraria-server
+natfrp-service
 
 # ---- 关键挂载点（NAS 数据盘）----
 [mounts:critical]

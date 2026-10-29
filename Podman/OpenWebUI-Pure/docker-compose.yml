@@ -1,0 +1,27 @@
+# 路径：/home/ywpc/Podman/OpenWebUI-Pure
+# 镜像：docker.io/ywpc05/open-webui-pure:main（自建 fork，源码见
+#       https://github.com/100pangci/open-webui-pure，上游 v0.11.3 的激进删减版）
+# 说明：2026-09-18 从原版 Open WebUI 切换而来，数据为原版一致性快照迁移。
+#       frpc 隧道指向本容器 8080。
+services:
+  open-webui-pure:
+    image: ywpc05/open-webui-pure:main
+    container_name: open-webui-pure
+    # 容器内应用以 uid 1000 运行，keep-id 让 bind mount 读写权限与宿主 ywpc 对齐
+    userns_mode: "keep-id"
+    ports:
+      # 正式端口 8080（frpc 隧道指向此处）；原版容器已停用保留作回退
+      - "8080:8080"
+    network_mode: "pasta:-T,1145"
+    environment:
+      - TZ=Asia/Shanghai
+      - HTTP_PROXY=http://127.0.0.1:1145
+      - HTTPS_PROXY=http://127.0.0.1:1145
+      - NO_PROXY=localhost,127.0.0.1,host.containers.internal
+      - PORT=8080
+      # 与现役实例同一签名密钥，旧会话/登录状态可延续
+      - WEBUI_SECRET_KEY=<REDACTED-填≥32字节随机串>
+      - DISABLE_UPDATE_CHECK=true
+    volumes:
+      - ./config:/app/backend/data:z
+    restart: unless-stopped
