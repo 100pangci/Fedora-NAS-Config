@@ -25,7 +25,7 @@ config/
 │   └── services.conf.example     # 健康检查名单（critical / optional / expected_stopped 分级）
 └── systemd/
     ├── podman-restart.service   # 系统级：rootful 容器开机自启
-    ├── upload-cleanup.{service,timer}    # 每日 06:00 清理 OpenWebUI 旧上传
+    ├── upload-cleanup.{service,timer}    # 已停用（2026-10-12），清理的是已删除的原版 OpenWebUI 目录，仅作存档
     ├── v2rayn-web.service       # 宿主 v2rayN-Web 代理（用户级）
     └── fedora-nas-monthly-{precheck,upgrade,health}.{service,timer}  # 月度维护（最后一个周六/周日）
 Podman/
