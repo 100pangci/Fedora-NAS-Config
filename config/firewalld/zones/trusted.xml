@@ -2,6 +2,5 @@
 <zone target="ACCEPT">
   <short>Trusted</short>
   <description>All network connections are accepted.</description>
-  <interface name="podman1"/>
   <forward/>
 </zone>

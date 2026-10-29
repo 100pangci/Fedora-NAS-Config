@@ -29,8 +29,8 @@ config/
     ├── v2rayn-web.service       # 宿主 v2rayN-Web 代理（用户级）
     └── fedora-nas-monthly-{precheck,upgrade,health}.{service,timer}  # 月度维护（最后一个周六/周日）
 Podman/
-├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/ OpenWebUI/   # OpenWebUI 为原版残留，待删除
-├── OpenWebUI-Pure/              # 现役 Open WebUI（自建 fork，8080）；用户 2026-10-29 表示近期会删掉原版 OpenWebUI 那套
+├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/
+├── OpenWebUI-Pure/              # 现役 Open WebUI（自建 fork，8080）；原版 OpenWebUI 目录已于 2026-10-29 删除
 ├── Netfrp/                      # SakuraFrp launcher（三方 frp 备选，长期未启动）
 ├── PeerBanHelper/ qBittorrent-Enhanced-Edition/ Scrutiny/ Syncthing/
 ├── Ubuntu-Xfce/                 # webtop 桌面 + 百度网盘/115（rootless；按需启动；启动自动装 App；不再承担代理）
@@ -45,7 +45,7 @@ Tools/uninstall_monthly_maintenance.sh  # 卸载（--purge 连配置状态日志
 Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 ```
 
-> 2026-10-12 起 ArchiveBox 与 Antigravity-Manager 已彻底删除（容器/镜像/目录），本仓库同步移除其 compose；2026-10-29 复核时同步收录现役 `OpenWebUI-Pure/` 与 `Netfrp/`。
+> 2026-10-12 起 ArchiveBox 与 Antigravity-Manager 已彻底删除（容器/镜像/目录），本仓库同步移除其 compose；2026-10-29 复核时同步收录现役 `OpenWebUI-Pure/` 与 `Netfrp/`，并移除同日删除的原版 `OpenWebUI/` 目录。
 
 ## 月度自动维护（fedora-nas-monthly-*）
 
@@ -68,7 +68,6 @@ Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
 | `Podman/Frpc/config/frpc.toml` | frp 服务端 token |
 | `Podman/Ubuntu-Xfce/docker-compose.yml` | webtop VNC 密码 |
 | `Podman/Openlist/docker-compose.yml` | MySQL root 密码 |
-| `Podman/OpenWebUI/docker-compose.yml` | WEBUI_SECRET_KEY |
 | `Podman/OpenWebUI-Pure/docker-compose.yml` | WEBUI_SECRET_KEY |
 | `Podman/Netfrp/docker-compose.yml` | SakuraFrp token / 隧道远程地址 |
 | `Podman/Minecraft/Mefrp-MC/docker-compose.yml` | 三方 frp 令牌 |
