@@ -29,8 +29,8 @@ config/
     ├── v2rayn-web.service       # 宿主 v2rayN-Web 代理（用户级）
     └── fedora-nas-monthly-{precheck,upgrade,health}.{service,timer}  # 月度维护（最后一个周六/周日）
 Podman/
-├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/ OpenWebUI/
-├── OpenWebUI-Pure/              # 现役 Open WebUI（自建 fork，8080；原版 OpenWebUI 仅留 compose 作回退）
+├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/ OpenWebUI/   # OpenWebUI 为原版残留，待删除
+├── OpenWebUI-Pure/              # 现役 Open WebUI（自建 fork，8080）；用户 2026-10-29 表示近期会删掉原版 OpenWebUI 那套
 ├── Netfrp/                      # SakuraFrp launcher（三方 frp 备选，长期未启动）
 ├── PeerBanHelper/ qBittorrent-Enhanced-Edition/ Scrutiny/ Syncthing/
 ├── Ubuntu-Xfce/                 # webtop 桌面 + 百度网盘/115（rootless；按需启动；启动自动装 App；不再承担代理）
