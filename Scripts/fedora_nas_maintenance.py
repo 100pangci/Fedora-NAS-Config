@@ -777,23 +777,41 @@ def running_kernel() -> str:
 
 
 def installed_kernels() -> list[str]:
-    """按安装时间倒序返回已安装内核实名版本（kernel-core）。"""
-    res = run(["rpm", "-q", "--last", "--qf", "%{NAME}|%{VERSION}-%{RELEASE}.%{ARCH}\n",
-               "kernel-core"], timeout=60)
-    if res.rc != 0 or not res.out.strip():
-        res = run(["rpm", "-q", "--last", "--qf", "%{NAME}|%{VERSION}-%{RELEASE}.%{ARCH}\n",
-                   "kernel"], timeout=60)
-    kernels = []
-    for line in res.out.splitlines():
-        line = line.strip()
-        if not line or "not installed" in line or "|" not in line:
+    """按安装时间倒序返回已安装内核实名版本（kernel-core）。
+
+    注意：rpm 的 --last 与 --qf 同时使用时不再生效（实测按 rpmdb 原始顺序输出，
+    7.2.8 会排在 7.2.13 前面），因此改为取 INSTALLTIME 自行排序。
+    """
+    for pkg in ("kernel-core", "kernel"):
+        res = run(["rpm", "-q", "--qf", "%{INSTALLTIME}|%{VERSION}-%{RELEASE}.%{ARCH}\n", pkg],
+                  timeout=60)
+        if res.rc != 0 or not res.out.strip():
             continue
-        name, evr = line.split("|", 1)
-        if name.strip() in ("kernel-core", "kernel"):
-            kernels.append(evr.strip())
-    # 去重保序
-    seen: set[str] = set()
-    return [k for k in kernels if not (k in seen or seen.add(k))]
+        rows: list[tuple[int, str]] = []
+        for line in res.out.splitlines():
+            line = line.strip()
+            if not line or "not installed" in line or "|" not in line:
+                continue
+            ts_s, evr = line.split("|", 1)
+            evr = evr.strip()
+            if not evr:
+                continue
+            try:
+                ts = int(ts_s)
+            except ValueError:
+                ts = 0
+            rows.append((ts, evr))
+        if not rows:
+            continue
+        rows.sort(key=lambda x: x[0], reverse=True)
+        seen: set[str] = set()
+        ordered: list[str] = []
+        for _ts, evr in rows:
+            if evr not in seen:
+                seen.add(evr)
+                ordered.append(evr)
+        return ordered
+    return []
 
 
 def newest_installed_kernel() -> str:
@@ -977,7 +995,7 @@ def refresh_metadata(cfg: Config, logger: Logger) -> tuple[Check, list[tuple[str
     if not res.ok:
         logger.log(f"makecache 返回 {res.rc}，尝试用 repoquery 复核…", "WARN")
         probe = run(["dnf5", "--refresh", "repoquery", "--upgrades",
-                     "--qf", "%{name}|%{evr}|%{arch}"], timeout=900)
+                     "--qf", "%{name}|%{evr}|%{arch}\n"], timeout=900)
         if probe.ok:
             check = Check("dnf 元数据刷新", "warning",
                           "makecache 有仓库报错，但 repoquery 可用（可能是第三方仓库抖动）")
@@ -989,15 +1007,53 @@ def refresh_metadata(cfg: Config, logger: Logger) -> tuple[Check, list[tuple[str
     upgrades = list_upgrades(cfg, logger)
     if upgrades is None:
         return Check("dnf 元数据刷新", "critical", "元数据已刷新，但无法获取待更新清单"), []
+    if not upgrades:
+        # 兜底复核：防止 repoquery 解析层回归（如 dnf5 输出格式变化）导致假“无更新”
+        has_updates, fallback = list_upgrades_via_check_update(logger)
+        if has_updates and not fallback:
+            return Check("dnf 元数据刷新", "critical",
+                         "check-update 报告有可用更新，但 repoquery 清单为空且无法解析"
+                         "（疑似 dnf5 输出格式变化）"), []
+        upgrades = fallback
     return Check("dnf 元数据刷新", "ok", "dnf5 元数据刷新成功"), upgrades
 
 
 def list_upgrades(cfg: Config, logger: Logger) -> list[tuple[str, str, str]] | None:
-    res = run(["dnf5", "repoquery", "--upgrades", "--qf", "%{name}|%{evr}|%{arch}"], timeout=600)
+    res = run(["dnf5", "repoquery", "--upgrades", "--qf", "%{name}|%{evr}|%{arch}\n"], timeout=600)
     if not res.ok:
         logger.log(f"repoquery --upgrades 失败: {tail_text(res.text(), 5)}", "ERROR")
         return None
     return parse_upgrade_lines(res.out)
+
+
+def list_upgrades_via_check_update(logger: Logger) -> tuple[bool, list[tuple[str, str, str]]]:
+    """用 dnf5 check-update 复核是否有更新（退出码 100 = 有更新）。"""
+    probe = run(["dnf5", "check-update"], timeout=600)
+    if probe.rc != 100:
+        return False, []
+    upgrades = parse_check_update_lines(probe.out)
+    if upgrades:
+        logger.log(f"repoquery 清单为空但 check-update 报告有更新，已回退解析得到 "
+                   f"{len(upgrades)} 个包", "WARN")
+    return True, upgrades
+
+
+def parse_check_update_lines(text: str) -> list[tuple[str, str, str]]:
+    """解析 dnf5 check-update 的表格输出（name.arch  EVR  repo）。"""
+    arches = {"x86_64", "noarch", "i686", "i386", "aarch64", "ppc64le", "s390x", "src"}
+    upgrades: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 3 or "." not in parts[0]:
+            continue
+        name, arch = parts[0].rsplit(".", 1)
+        if arch not in arches or not name or name in seen:
+            continue
+        seen.add(name)
+        upgrades.append((name, parts[1], arch))
+    return upgrades
+
 
 
 def parse_upgrade_lines(text: str) -> list[tuple[str, str, str]]:
