@@ -1,0 +1,30 @@
+# MaiBot - https://github.com/Mai-with-u/MaiBot
+# WebUI 8001；QQ 由 SnowLuma 提供，通过本机 127.0.0.1:3001 正向 WS 接入。
+# 本机 Ollama 提供 embedding；宿主代理供模型 API 与插件依赖使用。
+services:
+  maibot:
+    image: docker.io/sengokucola/maibot:latest
+    container_name: maibot
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=Asia/Shanghai
+      - MAIBOT_LEGACY_0X_UPGRADE_CONFIRMED=1
+      - MAIBOT_STATISTICS_REPORT_PATH=/MaiMBot/data/maibot_statistics.html
+      - HTTP_HOST=0.0.0.0
+      - HTTP_PROXY=http://127.0.0.1:1145
+      - HTTPS_PROXY=http://127.0.0.1:1145
+      - http_proxy=http://127.0.0.1:1145
+      - https_proxy=http://127.0.0.1:1145
+      - NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+      - no_proxy=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+    volumes:
+      - ./docker-config/mmc:/MaiMBot/config:z
+      - ./data/MaiBot:/MaiMBot/data:z
+      - ./data/MaiBot-plugin-data:/MaiMBot/data/plugins:z
+      - ./data/MaiBot/emoji:/data/emoji:z
+      - ./data/MaiBot/plugins:/MaiMBot/plugins:z
+      - ./data/MaiBot/logs:/MaiMBot/logs:z
+      - ./data/MaiBot-host:/MaiMBot/host:z
+      - ./data/MaiBot-bots:/MaiMBot/bots:z
+    stop_grace_period: 70s

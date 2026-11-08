@@ -18,7 +18,7 @@ services:
       - NO_PROXY=localhost,127.0.0.1,host.containers.internal
     volumes:  
       - ./config:/opt/openlist/data:z      # 配置、日志、缓存放本地  
-      - /mnt/Old-1:/mnt/Old-1:rslave             # 把整个 NTFS 映射进去供其读取和挂载
+      - /mnt/Old-1:/mnt/Old-1:rslave             # 将数据盘 XFS 挂载点映射进去供其读取
       - /mnt/Old-2:/mnt/Old-2:rslave
       - /mnt/New-1:/mnt/New-1:rslave
       - /mnt/New-2:/mnt/New-2:rslave

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>SnowLuma</short>
+  <description>SnowLuma noVNC and web interface</description>
+  <port port="6081" protocol="tcp"/>
+  <port port="5099" protocol="tcp"/>
+</service>

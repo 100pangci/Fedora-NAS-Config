@@ -1,6 +1,6 @@
 # Fedora-NAS Config
 
-Fedora Server 44 NAS（`fedora-nas`，内网 IP 已模糊为 192.168.x.x）的**全套配置快照**（脱敏版），供灾难恢复与日常维护参考。
+Fedora Server 45 NAS（`fedora-nas`，内网 IP 已模糊为 `192.168.x.x`）的系统与服务配置快照，脱敏后供灾难恢复与日常维护参考。实机核对日期：**2026-11-08**。仓库保存部署与系统配置，不包含应用数据、账号态、模型和加密卷内容。
 
 配套维护手册（含恢复流程、故障排查、硬件记录）保存在个人笔记库：《Fedora Server 系统安装与维护手册》。
 
@@ -8,100 +8,94 @@ Fedora Server 44 NAS（`fedora-nas`，内网 IP 已模糊为 192.168.x.x）的**
 
 ```
 config/
-├── dnf/
-│   ├── dnf.conf                  # DNF 加速（max_parallel_downloads/fastestmirror）
-│   └── yum.repos.d/              # 阿里云换源后的 fedora.repo / fedora-updates.repo
-├── fstab/                        # 磁盘挂载表（XFS 全盘，UUID 直挂）
-├── samba/smb.conf                # Samba 共享（仅 ywpc 可读写；VeraCrypt 卷以 Vault-1/Vault-2 指代）
-├── containers/containers.conf    # Podman 引擎用户配置
-├── firewalld/                    # 防火墙 zones + 自定义服务定义
-│   ├── zones/                    # FedoraServer.xml（默认 zone）
-│   └── services/                 # qBE/scrutiny/Syncthing/V2ray_proxy 等
-├── crontab/
-│   ├── root.txt                  # root crontab（每日 04:30 EFU 目录树扫描）
-│   └── user.txt                  # 用户 crontab（每日 06:00 清理 OpenWebUI-Pure 60 天前的上传）
-├── fedora-nas/                   # 月度自动维护配置
-│   ├── update.conf.example       # 模板（真实文件 /etc/fedora-nas/update.conf 权限 600，含授权码不入库）
-│   └── services.conf.example     # 健康检查名单（critical / optional / expected_stopped 分级）
-└── systemd/
-    ├── podman-restart.service   # 系统级：rootful 容器开机自启
-    ├── upload-cleanup.{service,timer}    # 已停用（2026-10-12），清理的是已删除的原版 OpenWebUI 目录，仅作存档
-    ├── v2rayn-web.service       # 宿主 v2rayN-Web 代理（用户级）
-    └── fedora-nas-monthly-{precheck,upgrade,health}.{service,timer}  # 月度维护（最后一个周六/周日）
+├── dnf/                          # DNF 配置和 Fedora 45 软件源模板
+├── fstab/                        # XFS 文件系统挂载表
+├── samba/smb.conf                # Samba 共享；加密卷挂载点以 Vault-1/Vault-2 指代
+├── containers/containers.conf    # Podman 用户配置
+├── firewalld/
+│   ├── zones/                    # FedoraServer.xml 等 zone 快照
+│   └── services/                 # 自定义端口服务定义，含 Magpie/MaiBot/SnowLuma
+├── crontab/                      # root/user 定时任务快照
+├── fedora-nas/                   # 月度维护配置模板（真实 SMTP 配置不入库）
+└── systemd/                      # 月度维护、代理和容器启动 unit/timer
 Podman/
 ├── Bili-Sync/ FluxDown/ Frpc/ Jellyfin/ Openlist/
-├── OpenWebUI-Pure/              # 现役 Open WebUI（自建 fork，8080）；原版 OpenWebUI 目录已于 2026-10-29 删除
-├── Netfrp/                      # SakuraFrp launcher（三方 frp 备选，长期未启动）
-├── PeerBanHelper/ qBittorrent-Enhanced-Edition/ Scrutiny/ Syncthing/
-├── Ubuntu-Xfce/                 # webtop 桌面 + 百度网盘/115（rootless；按需启动；启动自动装 App；不再承担代理）
-├── LocalSend/                   # 自建镜像 ywpc05/localsend-cli（构建见独立仓库）
-├── Minecraft/                   # MC 服务端 + Mefrp-MC 三方 frp（按需启动）
-├── Terraria/                    # Terraria 服务端 + Mefrp-TR 三方 frp（按需启动）
-└── Frpc/config/frpc.toml        # frp 隧道配置（token 已脱敏）
-Tools/*.sh                       # 运维脚本（~/Tools）
-Scripts/fedora_nas_maintenance.py # 月度维护主程序（预检查/升级/重启后健康检查，纯标准库）
-Tools/install_monthly_maintenance.sh    # 幂等安装/重渲染 timer
-Tools/uninstall_monthly_maintenance.sh  # 卸载（--purge 连配置状态日志）
-Scripts/generate_efu_and_tree.py # 每日目录树/EFU 生成（~/Scripts）
+├── LocalSend/ OpenWebUI-Pure/ PeerBanHelper/ qBittorrent-Enhanced-Edition/
+├── Scrutiny/ Syncthing/ Vnstat-ui/ Ubuntu-Xfce/
+├── Magpie/                       # Claude Code/OpenCode 网关 + Web UI；密钥脱敏
+├── MaiBot/                       # MaiBot 部署参数；config/data 不入库
+├── Ollama/                       # 本地 embedding 服务；模型数据不入库
+├── SnowLuma/                     # QQ 桌面 + OneBot；QQ 登录态不入库
+├── Netfrp/                       # SakuraFrp launcher；token/远程地址脱敏
+├── Minecraft/                    # MC 服务端 + Mefrp-MC 三方 frp（按需启动）
+└── Terraria/                     # Terraria 服务端 + Mefrp-TR 三方 frp（按需启动）
+Tools/*.sh                        # 运维脚本快照
+Scripts/*.py                      # 月度维护和每日索引生成脚本
 ```
 
-> **firewalld 说明**：`config/firewalld/services/` 里保留了不少当前 zone 未引用的服务定义（DSH、qq-bridge、ArchiveBox、Antigravity-Manager、Jellyfin、CoAI、Mihomo、Sub2API、Sub-Store、changedetection、dufs、OpenClaw、LinuxServer 等），zone 里也保留了 minecraft/terraria/opencode/OpenAI_auth/NetFrp/Frpc 这些按需项。这是**刻意保留**——相关服务经常临时/按需启动，端口放行要随时可用，并非漏删的残留。
->
-> 2026-10-12 起 ArchiveBox 与 Antigravity-Manager 已彻底删除（容器/镜像/目录），本仓库同步移除其 compose；2026-10-29 复核时同步收录现役 `OpenWebUI-Pure/` 与 `Netfrp/`，并移除同日删除的原版 `OpenWebUI/` 目录。
+## 实机服务概况
+
+2026-11-08 核对时，rootless Podman 有 17 个运行中容器、6 个 Exited/Created 容器。新加入的服务包括 Magpie（3425/3430）、MaiBot（8001）、SnowLuma（6081/5099）和 Ollama（仅宿主回环 11434）；natfrp-service 当前运行并监听 7102。Minecraft、Terraria、Jellyfin 和 webtop 按需启动，核对时均未运行。Scrutiny API 8088 返回 HTTP 200；当前无 sudo 权限，rootful 容器列表未能复核，仓库保留最近已核实的 Scrutiny 配置。
+
+Magpie 使用 host 网络，并挂载选定的 Claude Code/OpenCode 配置、会话数据和宿主 CLI。SnowLuma 使用 rootless Podman、`SYS_PTRACE` 和 `seccomp=unconfined` 支持 QQ hook；其 OneBot 3000/3001 只绑定宿主回环。MaiBot 通过 127.0.0.1:3001 接入 SnowLuma，Ollama 为其提供本地 embedding。
+
+## firewalld
+
+`config/firewalld/services/` 保留现役和按需服务定义，不要清理。仓库中的 `FedoraServer.xml` 最近一次完整核对日期为 2026-10-29；2026-11-08 非特权会话只能确认 `FedoraServer` 绑定 `bridge0`/`enp2s0`，读取 zone 服务列表时授权失败，因此 XML 仍是上次核对的快照。新增的 Magpie、MaiBot、SnowLuma 服务定义按实机监听端口整理；是否已加入当前 zone，需在有权限时另行核对。
+
+ArchiveBox、Antigravity-Manager 等服务虽已删除，相关 firewalld 定义仍按用户要求保留备用。
 
 ## 月度自动维护（fedora-nas-monthly-*）
 
-每月**最后一个周六 20:00** 预检查并发邮件；紧随其后的**周日 04:00** 执行 `dnf5 upgrade --refresh -y`，
-仅在需要时重启；重启后自动健康检查并发送最终邮件（跨月场景如 10-31 → 11-01 视为同一窗口）。
+每月**最后一个周六 20:00** 预检查并发邮件；紧随其后的**周日 04:00** 执行 `dnf5 upgrade --refresh -y`，仅在需要时重启；重启后进行健康检查并发送最终邮件（跨月按同一窗口处理）。
 
-- 主程序：`~/Scripts/fedora_nas_maintenance.py`（子命令 `precheck/upgrade/health/run/mail-test/status/skip/selftest/bootinfo`）
-- 配置：`/etc/fedora-nas/update.conf`（600，唯一时间/SMTP/阈值来源；改时间后重跑安装脚本即可重渲染 timer）
-- 名单：`/etc/fedora-nas/services.conf`（critical 才影响「服务异常」结论；optional 为警告；expected_stopped 为按需服务）
-- 状态：`/var/lib/fedora-nas-update/`（重启不丢；结束后归档到 `history/`）；日志：`/var/log/fedora-nas-update/`
-- 跳过下一次：`sudo python3 ~/Scripts/fedora_nas_maintenance.py skip`（下次维护时消费并自动删除）
-- 与每日 `dnf5-automatic`（仅安全更新）互补，互不改动
+- 主程序：`~/Scripts/fedora_nas_maintenance.py`（`precheck/upgrade/health/run/mail-test/status/skip/unskip/selftest/bootinfo/clear-interrupted`）
+- 配置：`/etc/fedora-nas/update.conf`（600；真实 SMTP 凭据不入库）
+- 名单：`/etc/fedora-nas/services.conf`（critical / optional / expected_stopped 分级）
+- 状态：`/var/lib/fedora-nas-update/`；日志：`/var/log/fedora-nas-update/`
+- 2026-10-31 预检查、11-01 升级和重启后健康检查已完成；下次窗口为 **2026-11-28 20:00 → 11-29 04:00**。
+- 与每日 `dnf5-automatic`（仅安全更新）互补。
 
-## 脱敏说明
+## 脱敏与未入库数据
 
-以下文件中的敏感值已替换为 `<REDACTED-...>` 占位符，恢复时需手动填入：
+配置快照中的敏感值以 `<REDACTED-...>` 替换；恢复时需在本机安全填回。局域网 IP 已模糊，VeraCrypt 挂载点使用 `Vault-1`/`Vault-2` 名称。
 
-| 文件 | 脱敏项 |
-|------|--------|
-| `Podman/Frpc/config/frpc.toml` | frp 服务端 token |
-| `Podman/Ubuntu-Xfce/docker-compose.yml` | webtop VNC 密码 |
-| `Podman/Openlist/docker-compose.yml` | MySQL root 密码 |
-| `Podman/OpenWebUI-Pure/docker-compose.yml` | WEBUI_SECRET_KEY |
-| `Podman/Netfrp/docker-compose.yml` | SakuraFrp token / 隧道远程地址 |
+| 文件 | 脱敏或排除内容 |
+|------|----------------|
+| `Podman/Frpc/config/frpc.toml` | frp 服务端 token、服务器地址 |
+| `Podman/Netfrp/docker-compose.yml` | SakuraFrp token、隧道远程地址 |
+| `Podman/Magpie/docker-compose.yml` | `MAGPIE_WEB_KEY`、局域网地址 |
+| `Podman/OpenWebUI-Pure/docker-compose.yml` | `WEBUI_SECRET_KEY` |
+| `Podman/Openlist/docker-compose.yml` | MySQL root 密码；VeraCrypt 挂载点名称 |
+| `Podman/Ubuntu-Xfce/docker-compose.yml` | webtop 密码 |
 | `Podman/Minecraft/Mefrp-MC/docker-compose.yml` | 三方 frp 令牌 |
 | `Podman/Terraria/Mefrp-TR/docker-compose.yml` | 三方 frp 令牌 |
+| `Podman/Terraria/Trlatest/docker-compose.yml` | 世界文件名 |
 | `Podman/Terraria/Trlatest/config/serverconfig.txt` | 服务器密码 |
-| `Tools/rar_background_archive.sh` / `_vn.sh` / `rar_background_unpacker.sh` | RAR 压缩密码 / SMB 账户密码 |
+| `Tools/rar_background_archive.sh`、`_vn.sh`、`rar_background_unpacker.sh` | RAR 密码、SMB 账户密码 |
 | `Tools/wakeup_pc.sh` | WoL 目标 MAC |
 
-**不包含**（敏感或未改动，仅本地保管）：
+以下本机数据不进入仓库：
 
-- `/etc/fedora-nas/update.conf`（月度维护真实配置，含 163 SMTP 授权码；仓库只提供 `.example`）
-- `~/.ssh/authorized_keys`（SSH 公钥）
-- `~/Podman/Ubuntu-Xfce/config/Software/v2rayN/`（订阅与代理配置；2026-09-28 起 webtop 不再跑代理，目录原样保留）
-- `~/Podman/Ubuntu-Xfce/config/debs/`（百度网盘/115 及依赖的离线安装包，rootless webtop 启动时自动安装）
-- `~/Podman/Terraria/Trlatest/config/` 中的世界文件 `*.wld` 与 `banlist.txt`（游戏数据）
-- VeraCrypt 加密卷（挂载点不公开，仓库中以 `Vault-1`/`Vault-2` 指代）的密码
-- `/etc/ssh/sshd_config`、`/etc/selinux/`（均为发行版默认，未做改动）
-- 已弃用的 podman 代理 override.conf 备份（无需还原，见维护手册 3.2 节）
-- 已移除：`localsend-update.{service,timer}`（镜像已发布 Docker Hub，更新走 `check_container_updates.sh`）
+- `/etc/fedora-nas/update.conf`（真实 SMTP 配置）与 `~/.ssh/authorized_keys`
+- `~/Podman/Magpie/config/`（服务商密钥、登录态、插件与用量数据）
+- `~/Podman/MaiBot/docker-config/` 与 `data/`（Bot、注册表、WebUI 凭据和插件数据）
+- `~/Podman/SnowLuma/data/`、`qq-config/`、`qq-data/`（QQ 登录态及应用数据）
+- `~/Podman/Ollama/data/`（模型文件）
+- `~/Podman/Ubuntu-Xfce/config/Software/v2rayN/`（订阅与代理配置）及 `config/debs/`（百度网盘/115 离线安装包）
+- `~/Podman/Terraria/Trlatest/config/` 中的 `*.wld` 与 `banlist.txt`
+- VeraCrypt 卷密码和卷内数据；`/etc/ssh/sshd_config`、`/etc/selinux/`（未修改）
+- 已弃用的 podman 代理 override 备份；已移除的 `localsend-update.{service,timer}`
 
 ## 恢复用法
 
 ```bash
 git clone https://github.com/100pangci/Fedora-NAS-Config.git
 # 对照《Fedora Server 系统安装与维护手册》Phase 2~7 逐步还原
-# 将各文件拷回目标路径后，填入所有 <REDACTED-...> 占位符
-#
+# 按设备、磁盘和网络实际情况调整模板，并填回所有 <REDACTED-...> 占位符
 # 月度维护（可选）：
 #   sudo bash ~/Tools/install_monthly_maintenance.sh
-#   → 自动生成 /etc/fedora-nas/update.conf（首次可用 Scrutiny YAML 一次性导入 SMTP，失败则手动填写）
-#   → 渲染并启用 fedora-nas-monthly-{precheck,upgrade,health}.timer
-#   验证：sudo python3 ~/Scripts/fedora_nas_maintenance.py selftest && sudo python3 ~/Scripts/fedora_nas_maintenance.py mail-test
+#   sudo python3 ~/Scripts/fedora_nas_maintenance.py selftest
 ```
 
 ## 关联仓库

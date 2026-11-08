@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>Magpie</short>
+  <description>Magpie gateway and web interface</description>
+  <port port="3425" protocol="tcp"/>
+  <port port="3430" protocol="tcp"/>
+</service>

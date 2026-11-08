@@ -1,6 +1,6 @@
 # frpc.toml
 
-serverAddr = "22.22.22.22"
+serverAddr = "<REDACTED-填写VPS地址>"
 serverPort = 7000
 
 [auth]

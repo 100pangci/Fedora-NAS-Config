@@ -1,0 +1,41 @@
+# SnowLuma - https://github.com/SnowLuma/SnowLuma
+# QQ 桌面 + OneBot；由 MaiBot 通过宿主回环 127.0.0.1:3001 正向 WS 接入。
+# noVNC: 6081；SnowLuma WebUI: 5099。首次启动密码随机生成并写入本地配置。
+services:
+  snowluma:
+    image: docker.io/motricseven7/snowluma:latest
+    container_name: snowluma
+    restart: unless-stopped
+    userns_mode: "keep-id"
+    # entrypoint 需要 root 初始化；QQ 和 SnowLuma 应用用户仍为 uid 1000
+    user: "0:0"
+    shm_size: 1gb
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 524288
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    environment:
+      - TZ=Asia/Shanghai
+      - VNC_PASSWD=
+      - SNOWLUMA_UID=1000
+      - SNOWLUMA_GID=1000
+      - SNOWLUMA_WEBUI_HOST=0.0.0.0
+      - SNOWLUMA_WEBUI_PORT=5099
+      - SNOWLUMA_LOG_LEVEL=info
+      - SNOWLUMA_SCREEN=1920x1080x24
+      - SNOWLUMA_HOOK_AUTOLOAD=1
+      - SNOWLUMA_QQ_FLAGS=--disable-gpu --disable-software-rasterizer --disable-gpu-compositing
+    ports:
+      - "6081:6081"
+      - "5099:5099"
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - ./data:/app/data:z
+      - ./qq-config:/app/.config:z
+      - ./qq-data:/app/.local/share:z
+    stop_grace_period: 30s

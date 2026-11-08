@@ -49,6 +49,11 @@ bili-sync-rs
 vnstat-dashboard
 fluxdown-server
 scrutiny
+natfrp-service
+magpie
+maibot
+snowluma
+ollama
 
 [containers:expected_stopped]
 ubuntu-xfce-webtop
@@ -76,3 +81,12 @@ natfrp-service
 8384
 7474
 8080
+3000
+3001
+3425
+3430
+5099
+6081
+7102
+8001
+11434

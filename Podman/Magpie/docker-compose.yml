@@ -1,0 +1,40 @@
+# Magpie 网关 + Web 界面（ghcr.io/yetone/magpie，rootless Podman）
+# 文档：https://usemagpie.ai/docs/zh/docker
+# 端口：3425 网关；3430 Web 界面。MAGPIE_WEB_KEY 与局域网地址已脱敏。
+services:
+  magpie:
+    image: ghcr.io/yetone/magpie:latest
+    container_name: magpie
+    restart: unless-stopped
+    # 镜像内 uid 65532 映射到宿主 ywpc(1000)
+    userns_mode: "keep-id:uid=65532,gid=65532"
+    network_mode: host
+    environment:
+      - TZ=Asia/Shanghai
+      - PATH=/home/ywpc/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - MAGPIE_PUBLIC_URL=http://192.168.x.x:3425
+      - MAGPIE_WEB_KEY=<REDACTED-替换为部署时使用的固定密钥>
+      - MAGPIE_PROXY=http://127.0.0.1:1145
+      - HTTP_PROXY=http://127.0.0.1:1145
+      - HTTPS_PROXY=http://127.0.0.1:1145
+      - ALL_PROXY=http://127.0.0.1:1145
+      - http_proxy=http://127.0.0.1:1145
+      - https_proxy=http://127.0.0.1:1145
+      - all_proxy=http://127.0.0.1:1145
+      - NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+      - no_proxy=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+    volumes:
+      - ./config:/config:Z
+      # 仅映射 Claude Code / OpenCode 配置、会话数据和宿主 CLI
+      - /home/ywpc/.claude:/config/home/.claude:z
+      - /home/ywpc/.config/opencode:/config/opencode:z
+      - /home/ywpc/.local/share/opencode:/config/data/opencode:z
+      - /home/ywpc/.local/bin:/home/ywpc/.local/bin:z
+      - /home/ywpc/.local/share/claude:/home/ywpc/.local/share/claude:z
+    healthcheck:
+      test: [CMD, magpie, healthcheck]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    command: [web, --addr, 0.0.0.0:3430, --no-open]
