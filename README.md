@@ -41,7 +41,7 @@ Magpie 使用 host 网络，并挂载选定的 Claude Code/OpenCode 配置、会
 
 ## firewalld
 
-`config/firewalld/services/` 保留现役和按需服务定义，不要清理。仓库中的 `FedoraServer.xml` 最近一次完整核对日期为 2026-10-29；2026-11-08 非特权会话只能确认 `FedoraServer` 绑定 `bridge0`/`enp2s0`，读取 zone 服务列表时授权失败，因此 XML 仍是上次核对的快照。新增的 Magpie、MaiBot、SnowLuma 服务定义按实机监听端口整理；是否已加入当前 zone，需在有权限时另行核对。
+`config/firewalld/services/` 保留现役和按需服务定义，不要清理。2026-11-08 用户以 sudo 核对 `FedoraServer` zone：运行时接口为 `bridge0`、`enp2s0`，永久配置仅 `bridge0`；运行时和永久态的 34 个 service 项一致，且 `forward=yes`、`masquerade=yes`。仓库 `FedoraServer.xml` 按永久态同步。`QQ` 服务定义已按实机核对为 TCP 6081 并收录；`JoyCode` 虽在 zone 列表中，但用户说明是临时项，本仓库不收录其定义。
 
 ArchiveBox、Antigravity-Manager 等服务虽已删除，相关 firewalld 定义仍按用户要求保留备用。
 

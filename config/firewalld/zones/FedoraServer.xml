@@ -2,35 +2,41 @@
 <zone>
   <short>Public</short>
   <description>For use in public areas. You do not trust the other computers on networks to not harm your computer. Only selected incoming connections are accepted.</description>
-  <service name="ssh"/>
-  <service name="dhcpv6-client"/>
-  <service name="cockpit"/>
-  <service name="samba"/>
-  <service name="samba-client"/>
-  <service name="V2ray_proxy"/>
-  <service name="peerbanhelper"/>
+  <interface name="bridge0"/>
   <service name="Bili-Sync"/>
-  <service name="qBE_webui"/>
-  <service name="syncthing_webui"/>
-  <service name="OpenWebUI"/>
+  <service name="FluxDown"/>
+  <service name="Frpc"/>
+  <service name="JoyCode"/>
+  <service name="LocalSend"/>
+  <service name="Localsend"/>
+  <service name="Magpie"/>
+  <service name="MaiBot"/>
+  <service name="NetFrp"/>
+  <service name="OpenAI_auth"/>
   <service name="OpenList"/>
-  <service name="scrutiny"/>
-  <service name="VNStat"/>
-  <service name="qBE_Server"/>
+  <service name="OpenWebUI"/>
+  <service name="QQ"/>
+  <service name="SnowLuma"/>
   <service name="Syncthing_Server"/>
   <service name="Syncthing_Server_LAN"/>
-  <service name="Localsend"/>
-  <service name="Frpc"/>
+  <service name="Ubuntu-Xfce"/>
+  <service name="V2ray_proxy"/>
+  <service name="VNStat"/>
+  <service name="cockpit"/>
+  <service name="dhcpv6-client"/>
   <service name="mdns"/>
   <service name="minecraft"/>
-  <service name="FluxDown"/>
-  <service name="LocalSend"/>
-  <service name="terraria"/>
   <service name="opencode"/>
-  <service name="OpenAI_auth"/>
+  <service name="peerbanhelper"/>
+  <service name="qBE_Server"/>
+  <service name="qBE_webui"/>
+  <service name="samba"/>
+  <service name="samba-client"/>
+  <service name="scrutiny"/>
+  <service name="ssh"/>
+  <service name="syncthing_webui"/>
+  <service name="terraria"/>
   <service name="v2rayN-Web"/>
-  <service name="Ubuntu-Xfce"/>
-  <service name="NetFrp"/>
-  <masquerade/>
   <forward/>
+  <masquerade/>
 </zone>

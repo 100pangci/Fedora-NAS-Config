@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>QQ</short>
+  <description>QQ client service</description>
+  <port port="6081" protocol="tcp"/>
+</service>
